@@ -1,0 +1,78 @@
+import { CalendarCheck2, Heart } from "lucide-react";
+import type { Appointment, Vendor } from "../types/database";
+import { AppointmentCard } from "../components/schedule/AppointmentCard";
+import { BrideDeadline } from "../components/schedule/Photography";
+import { EmptyState, ServiceLabel } from "../components/ui/Primitives";
+import { sortAppointments } from "../utils/scheduling";
+import { hasTimes } from "../utils/time";
+
+export function MySchedulePage({
+  vendor,
+  appointments,
+  onEdit,
+}: {
+  vendor: Vendor;
+  appointments: Appointment[];
+  onEdit: (a: Appointment) => void;
+}) {
+  const mine = sortAppointments(
+    appointments.filter((a) => a.vendor_id === vendor.id),
+  );
+  const scheduled = mine.filter(
+    (a) => hasTimes(a) && a.status !== "pending_confirmation",
+  ).length;
+  return (
+    <>
+      <div className="page-intro">
+        <span className="date-caption">יום שלישי, 10 בנובמבר 2026</span>
+        <h1>
+          בוקר טוב, {vendor.name.split(" ")[0]}!{" "}
+          <Heart size={22} aria-hidden="true" />
+        </h1>
+        <p>יום מרגש לפנינו. נעשה אותו יחד, בנחת.</p>
+      </div>
+      <BrideDeadline />
+      <section>
+        <div className="section-title">
+          <h2>הלו״ז שלי</h2>
+          <ServiceLabel type={vendor.service_type} />
+        </div>
+        <div className="progress-card">
+          <span className="progress-icon">
+            <CalendarCheck2 size={21} aria-hidden="true" />
+          </span>
+          <div>
+            <strong>
+              {scheduled} מתוך {mine.length} שיבוצים נקבעו
+            </strong>
+            <span>התכנון מתעדכן אצל כולן</span>
+          </div>
+          <span className="progress-count" dir="ltr">
+            {scheduled}/{mine.length}
+          </span>
+          <div className="progress-track">
+            <span
+              style={{
+                width: `${mine.length ? (scheduled / mine.length) * 100 : 0}%`,
+              }}
+            />
+          </div>
+        </div>
+        <div className="appointment-grid">
+          {mine.map((a) => (
+            <AppointmentCard key={a.id} appointment={a} onEdit={onEdit} />
+          ))}
+        </div>
+        {!mine.length && (
+          <EmptyState title="אין לך שיבוצים כרגע">
+            שיבוצים שיוקצו לך יופיעו כאן.
+          </EmptyState>
+        )}
+      </section>
+      <p className="gentle-note">
+        <Heart size={13} aria-hidden="true" />
+        כל שינוי קטן אצלך, עוזר לכולנו לתכנן.
+      </p>
+    </>
+  );
+}

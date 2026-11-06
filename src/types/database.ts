@@ -1,0 +1,57 @@
+export type ServiceType = "makeup" | "hair";
+export type AppointmentStatus =
+  "unscheduled" | "proposed" | "confirmed" | "pending_confirmation";
+export type Vendor = { id: string; name: string; service_type: ServiceType };
+export type Participant = {
+  id: string;
+  name: string;
+  arrival_time: string | null;
+  ready_by: string | null;
+};
+export type AppointmentRow = {
+  id: string;
+  participant_id: string;
+  vendor_id: string;
+  service_type: ServiceType;
+  start_time: string | null;
+  end_time: string | null;
+  status: AppointmentStatus;
+};
+export interface Appointment extends AppointmentRow {
+  participant: Participant;
+  vendor: Vendor;
+}
+type Table<Row> = { Row: Row; Insert: never; Update: never; Relationships: [] };
+export interface Database {
+  public: {
+    Tables: {
+      vendors: Table<Vendor>;
+      participants: Table<Participant>;
+      appointments: Omit<Table<AppointmentRow>, "Update" | "Relationships"> & {
+        Update: Partial<
+          Pick<AppointmentRow, "start_time" | "end_time" | "status">
+        >;
+        Relationships: [
+          {
+            foreignKeyName: "appointments_participant_id_fkey";
+            columns: ["participant_id"];
+            isOneToOne: false;
+            referencedRelation: "participants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "appointments_vendor_id_fkey";
+            columns: ["vendor_id"];
+            isOneToOne: false;
+            referencedRelation: "vendors";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+    };
+    Views: { [_ in never]: never };
+    Functions: { [_ in never]: never };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+}

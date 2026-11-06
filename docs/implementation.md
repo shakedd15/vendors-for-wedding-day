@@ -1,0 +1,13 @@
+# Wedding preparation application
+
+Implement the supplied wedding specification locally. No live database access, database changes, remote repository access, pushes, or deployment during implementation.
+
+React, strict TypeScript, Vite, Tailwind, Supabase client and Lucide. Hebrew and RTL throughout, except the requested couple wordmark. Self-host Heebo. Ivory #f8f6f2, white #ffffff, blush #f1e3e3, rose #985e69, taupe #716b65, sage #e7eee8. A restrained wedding invitation header leads to practical cards, a vertical agenda and an accessible bottom sheet. All screens work at 375px.
+
+1. Scaffold the static application and deployment configuration. Install dependencies and produce a reproducible lockfile.
+2. Test scheduling rules before implementation: half-open intervals, participant/vendor overlaps including proposed bookings, actual arrivals, configurable bride buffer, pending approval, malformed/partial times, and availability. Implement independent typed utilities.
+3. Implement typed relational data access, read-before-write conflict revalidation and optimistic concurrency predicates, friendly database errors, Realtime cleanup, polling/manual refresh, and source-of-truth reload after save.
+4. Implement identity selection, vendor schedules, shared participant and agenda views, photography events, management statistics, filters, and appointment editing/status/clear flows. Keep approval explicit and durations unselected for new bookings.
+5. Run unit tests, strict compilation, production builds at root and project subpaths, and browser tests with synthetic HTTP fixtures only. Verify every identity and mobile overflow, keyboard/dialog behavior, successful edits and failures. Document which live integration checks remain for the owner.
+
+Planning choice: the bride buffer is a per-device planning preference (15 minutes by default), prominently labeled as an assumption, since there is no shared configuration table. Recompute warnings with that preference. Eyal explicitly approves a pending service; vendors can plan its time but cannot approve it. Pending timed intervals also reserve availability conservatively. Appointments outside 09:00–18:00 are selectable with warnings. Existing partial times are flagged and must be repaired. Do not invent vendor/participant data or insert/delete records.
