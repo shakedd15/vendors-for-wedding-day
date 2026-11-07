@@ -1,24 +1,6 @@
-import { Camera, Heart, LockKeyhole } from "lucide-react";
+import { Camera, LockKeyhole } from "lucide-react";
 import { photography } from "../../config/wedding";
 
-export function BrideDeadline() {
-  return (
-    <aside className="bride-deadline">
-      <span className="deadline-icon">
-        <Heart size={20} strokeWidth={1.5} aria-hidden="true" />
-      </span>
-      <div>
-        <strong>הרגע של שקד</strong>
-        <p>
-          מוכנה ומתרגשת עד <bdi>14:15</bdi>
-        </p>
-      </div>
-      <span className="deadline-time" dir="ltr">
-        14:15
-      </span>
-    </aside>
-  );
-}
 export function Photography() {
   return (
     <section className="photography">

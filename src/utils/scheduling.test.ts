@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Appointment } from "../types/database";
-import { availableSlots, validateBooking } from "./scheduling";
+import {
+  availableSlots,
+  buildBookingDraft,
+  validateBooking,
+} from "./scheduling";
 import { overlaps, toMinutes } from "./time";
 
 const base: Appointment = {
@@ -24,6 +28,38 @@ const draft = {
   end_time: "14:15",
   status: "proposed" as const,
 };
+describe("automatic booking state", () => {
+  it("saves a regular appointment without a separate confirmation choice", () => {
+    expect(buildBookingDraft(base, "13:30", "14:15")).toEqual({
+      start_time: "13:30",
+      end_time: "14:15",
+      status: "confirmed",
+    });
+  });
+  it("keeps a pending service unapproved when its time is saved or cleared", () => {
+    const pending = { ...base, status: "pending_confirmation" as const };
+    expect(buildBookingDraft(pending, "14:00", "15:00").status).toBe(
+      "pending_confirmation",
+    );
+    expect(buildBookingDraft(pending, null, null).status).toBe(
+      "pending_confirmation",
+    );
+  });
+  it("applies an explicit service approval to a timed or still-unscheduled appointment", () => {
+    const pending = { ...base, status: "pending_confirmation" as const };
+    expect(buildBookingDraft(pending, "14:00", "15:00", true).status).toBe(
+      "confirmed",
+    );
+    expect(buildBookingDraft(pending, null, null, true).status).toBe(
+      "unscheduled",
+    );
+  });
+  it("clears an existing regular appointment without removing its service", () => {
+    expect(
+      buildBookingDraft({ ...base, status: "confirmed" }, null, null),
+    ).toEqual({ start_time: null, end_time: null, status: "unscheduled" });
+  });
+});
 describe("time boundaries", () => {
   it("allows consecutive appointments", () =>
     expect(overlaps(600, 660, 660, 720)).toBe(false));

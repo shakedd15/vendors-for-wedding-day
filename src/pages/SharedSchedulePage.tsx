@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Camera, Clock3, Users } from "lucide-react";
-import type { Appointment, Participant, Vendor } from "../types/database";
+import type { Appointment, Participant } from "../types/database";
 import { photography, serviceLabels } from "../config/wedding";
-import { BrideDeadline, Photography } from "../components/schedule/Photography";
+import { Photography } from "../components/schedule/Photography";
 import {
   EmptyState,
   ServiceIcon,
-  StatusBadge,
+  ServiceApprovalNote,
 } from "../components/ui/Primitives";
 import { displayTime, hasTimes, toMinutes } from "../utils/time";
 import { sortAppointments } from "../utils/scheduling";
@@ -14,7 +14,6 @@ import { sortAppointments } from "../utils/scheduling";
 interface Props {
   appointments: Appointment[];
   participants: Participant[];
-  vendors: Vendor[];
   selectedVendor?: string;
   onEdit: (a: Appointment) => void;
   manager: boolean;
@@ -22,7 +21,6 @@ interface Props {
 export function SharedSchedulePage({
   appointments,
   participants,
-  vendors,
   selectedVendor,
   onEdit,
   manager,
@@ -30,7 +28,7 @@ export function SharedSchedulePage({
   const [view, setView] = useState<"participants" | "time">("participants");
   const [filter, setFilter] = useState("all");
   const filtered = appointments.filter(
-    (a) => filter === "all" || a.vendor_id === filter,
+    (a) => filter === "all" || a.participant_id === filter,
   );
   const canEdit = (a: Appointment) => manager || a.vendor_id === selectedVendor;
   const timeline = [
@@ -73,7 +71,6 @@ export function SharedSchedulePage({
         <h1>מתארגנות ביחד</h1>
         <p>כל השיבוצים והרגעים החשובים, במקום אחד.</p>
       </div>
-      <BrideDeadline />
       <div className="segmented" aria-label="תצוגת הלו״ז">
         <button
           aria-pressed={view === "participants"}
@@ -92,19 +89,21 @@ export function SharedSchedulePage({
           לפי שעות
         </button>
       </div>
-      <label className="filter-label" htmlFor="shared-vendor">
-        נותנות שירות
+      <label className="filter-label" htmlFor="shared-participant">
+        מתארגנת
         <select
-          id="shared-vendor"
+          id="shared-participant"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
-          <option value="all">כולן יחד</option>
-          {vendors.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name}
-            </option>
-          ))}
+          <option value="all">כל המתארגנות</option>
+          {[...participants]
+            .sort((a, b) => a.name.localeCompare(b.name, "he"))
+            .map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
         </select>
       </label>
       {view === "participants" ? (
@@ -117,11 +116,7 @@ export function SharedSchedulePage({
                   (toMinutes(b.arrival_time) ?? 0) ||
                 a.name.localeCompare(b.name, "he"),
             )
-            .filter(
-              (p) =>
-                filter === "all" ||
-                filtered.some((a) => a.participant_id === p.id),
-            )
+            .filter((p) => filter === "all" || p.id === filter)
             .map((p) => (
               <article className="participant-card" key={p.id}>
                 <div className="participant-heading">
@@ -174,7 +169,7 @@ export function SharedSchedulePage({
                                 "טרם שובצה שעה"
                               )}
                             </span>
-                            <StatusBadge status={a.status} />
+                            <ServiceApprovalNote status={a.status} />
                             {canEdit(a) && (
                               <button
                                 className="text-button"
@@ -195,16 +190,6 @@ export function SharedSchedulePage({
                 {p.name === "שלומית" && (
                   <p className="special-note">מסתפרת לפני ההגעה · איפור בלבד</p>
                 )}
-                {p.name === "עדי" &&
-                  appointments.some(
-                    (a) =>
-                      a.participant_id === p.id &&
-                      a.status === "pending_confirmation",
-                  ) && (
-                    <p className="special-note">
-                      הצטרפות לשיער אצל חן — עדיין ממתינה לאישור
-                    </p>
-                  )}
               </article>
             ))}
         </div>
@@ -233,7 +218,6 @@ export function SharedSchedulePage({
                     <>
                       <div className="agenda-title">
                         <h3>{a.participant.name}</h3>
-                        <StatusBadge status={a.status} />
                       </div>
                       <p>
                         <ServiceIcon type={a.service_type} size={14} />
@@ -245,6 +229,7 @@ export function SharedSchedulePage({
                           <span className="my-label">השיבוץ שלי</span>
                         )}
                       </p>
+                      <ServiceApprovalNote status={a.status} />
                       {canEdit(a) && (
                         <button
                           className="text-button"
@@ -286,7 +271,7 @@ export function SharedSchedulePage({
                     <span>
                       {a.participant.name} · {serviceLabels[a.service_type]}
                     </span>
-                    <StatusBadge status={a.status} />
+                    <ServiceApprovalNote status={a.status} />
                     {canEdit(a) && (
                       <button className="text-button" onClick={() => onEdit(a)}>
                         קביעת שעה

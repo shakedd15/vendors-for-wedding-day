@@ -1,4 +1,4 @@
-import type { AppointmentStatus, ServiceType } from "../types/database";
+import type { ServiceType } from "../types/database";
 export const wedding = {
   date: "2026-11-10",
   bride: "שקד",
@@ -14,12 +14,6 @@ export const serviceLabels: Record<ServiceType, string> = {
 export const vendorLabels: Record<ServiceType, string> = {
   makeup: "מאפרת",
   hair: "מעצבת שיער",
-};
-export const statusLabels: Record<AppointmentStatus, string> = {
-  unscheduled: "טרם שובץ",
-  proposed: "בתכנון",
-  confirmed: "מאושר",
-  pending_confirmation: "ממתין לאישור",
 };
 export interface PhotographyEvent {
   id: string;

@@ -1,5 +1,86 @@
 import { expect, test } from "@playwright/test";
-import { mockWedding, vendors } from "./fixtures";
+import { enterFamily, mockWedding, vendors } from "./fixtures";
+
+test("family access requires the local password and filters schedules by participant", async ({
+  page,
+}) => {
+  await mockWedding(page);
+  await page.goto("/");
+  await expect(
+    page.getByRole("button", { name: "משפחה וחברות", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /איל — ניהול/ })).toHaveCount(
+    0,
+  );
+  await page.getByRole("button", { name: "משפחה וחברות", exact: true }).click();
+  await page.getByLabel("סיסמה", { exact: true }).fill("999");
+  await page.getByRole("button", { name: "כניסה", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("הסיסמה שגויה");
+  await page.getByLabel("סיסמה", { exact: true }).fill("111");
+  await page.getByRole("button", { name: "כניסה", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "מתארגנות ביחד" }),
+  ).toBeVisible();
+  await expect(page.getByText("הרגע של שקד", { exact: true })).toHaveCount(0);
+  const sharedFilter = page.getByRole("combobox", {
+    name: "מתארגנת",
+    exact: true,
+  });
+  await sharedFilter.selectOption({ label: "חני" });
+  await expect(page.locator(".participant-card")).toHaveCount(1);
+  await expect(page.locator(".participant-card")).toContainText("חני");
+  await page.getByRole("button", { name: "ניהול", exact: true }).click();
+  const participantFilter = page.getByRole("combobox", {
+    name: "מתארגנת",
+    exact: true,
+  });
+  await expect(participantFilter.locator("option")).toHaveCount(11);
+  await participantFilter.selectOption({ label: "חני" });
+  await expect(page.locator(".appointment-card")).toHaveCount(2);
+  for (const heading of await page
+    .locator(".appointment-card h3")
+    .allTextContents())
+    expect(heading).toBe("חני");
+  await participantFilter.selectOption({ label: "שלומית" });
+  await expect(page.locator(".appointment-card")).toHaveCount(1);
+  await participantFilter.selectOption("all");
+  await expect(page.locator(".appointment-card")).toHaveCount(18);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "היי אהובה!" })).toBeVisible();
+  await enterFamily(page);
+  await expect(
+    page.getByRole("heading", { name: "מתארגנות ביחד" }),
+  ).toBeVisible();
+});
+
+test("back navigation returns through visited screens and then to name selection", async ({
+  page,
+}) => {
+  await mockWedding(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: /איילת שילוני/ }).click();
+  await page.getByRole("button", { name: "הלו״ז שלי", exact: true }).click();
+  await page.getByRole("button", { name: "לו״ז משותף", exact: true }).click();
+  await page.getByRole("button", { name: "לו״ז משותף", exact: true }).click();
+  await page.getByRole("button", { name: "חזרה", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "הלו״ז שלי", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "חזרה", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "היי אהובה!" })).toBeVisible();
+  await enterFamily(page);
+  await page.getByRole("button", { name: "ניהול", exact: true }).click();
+  await page.getByRole("button", { name: "חזרה", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "מתארגנות ביחד" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "חזרה", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "היי אהובה!" })).toBeVisible();
+  await page.getByRole("button", { name: /חן שקד/ }).click();
+  await page.reload();
+  await page.getByRole("button", { name: "חזרה", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "היי אהובה!" })).toBeVisible();
+});
 
 test("welcome is RTL and every vendor sees her real assignments at both phone widths", async ({
   page,
@@ -43,7 +124,7 @@ test("welcome is RTL and every vendor sees her real assignments at both phone wi
 test("saves, edits and clears an appointment without changing its assignment", async ({
   page,
 }) => {
-  await mockWedding(page);
+  const state = await mockWedding(page);
   await page.goto("/");
   await page.getByRole("button", { name: /איילת שילוני/ }).click();
   await page
@@ -70,12 +151,19 @@ test("saves, edits and clears an appointment without changing its assignment", a
     fullPage: true,
   });
   await expect(page.locator(".calculated-end")).toContainText("14:15");
-  await page.getByLabel("סטטוס השיבוץ").selectOption("confirmed");
+  await expect(page.getByLabel("סטטוס השיבוץ")).toHaveCount(0);
   await page.getByRole("button", { name: "שמירת השיבוץ" }).click();
   await expect(dialog).not.toBeVisible();
   await expect(
     page.getByRole("status").filter({ hasText: "השיבוץ נשמר בהצלחה" }),
   ).toBeVisible();
+  expect(
+    state.rows.find(
+      (a) =>
+        a.participant_id.endsWith("000000000106") &&
+        a.service_type === "makeup",
+    )?.status,
+  ).toBe("confirmed");
   await page
     .getByRole("button", { name: "עריכת שעה עבור חני", exact: true })
     .click();
@@ -119,13 +207,14 @@ test("database conflict and concurrent same-appointment edits leave the sheet re
 test("pending services stay pending for vendors and can be explicitly approved in management", async ({
   page,
 }) => {
-  await mockWedding(page);
+  const state = await mockWedding(page);
   await page.goto("/");
   await page.getByRole("button", { name: /חן שקד/ }).click();
   await page
     .getByRole("button", { name: "קביעת שעה עבור עדי", exact: true })
     .click();
-  await expect(page.getByLabel("סטטוס השיבוץ")).toBeDisabled();
+  await expect(page.getByLabel("סטטוס השיבוץ")).toHaveCount(0);
+  await expect(page.getByLabel("אני מאשר/ת את הצטרפותה לשירות")).toHaveCount(0);
   await page.getByLabel("משך הטיפול").fill("60");
   await expect(
     page.getByLabel("שעת התחלה").locator('option[value="13:45"]'),
@@ -136,9 +225,12 @@ test("pending services stay pending for vendors and can be explicitly approved i
     page
       .locator(".appointment-card")
       .filter({ has: page.getByRole("heading", { name: "עדי", exact: true }) }),
-  ).toContainText("ממתין לאישור");
+  ).toContainText("ההצטרפות לשירות ממתינה לאישור");
+  expect(
+    state.rows.find((a) => a.participant_id.endsWith("000000000109"))?.status,
+  ).toBe("pending_confirmation");
   await page.getByRole("button", { name: "החלפת משתמשת" }).click();
-  await page.getByRole("button", { name: "איל — ניהול הלו״ז" }).click();
+  await enterFamily(page);
   await page.getByRole("button", { name: "ניהול", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "ניהול ההתארגנות" }),
@@ -148,13 +240,16 @@ test("pending services stay pending for vendors and can be explicitly approved i
     .getByRole("button", { name: "עריכת שעה עבור עדי", exact: true })
     .click();
   await page.getByLabel("אני מאשר/ת את הצטרפותה לשירות").check();
-  await page.getByLabel("סטטוס השיבוץ").selectOption("confirmed");
+  await expect(page.getByLabel("סטטוס השיבוץ")).toHaveCount(0);
   await page.getByRole("button", { name: "שמירת השיבוץ" }).click();
   await expect(
     page
       .locator(".appointment-card")
       .filter({ has: page.getByRole("heading", { name: "עדי", exact: true }) }),
-  ).toContainText("מאושר");
+  ).not.toContainText("ההצטרפות לשירות ממתינה לאישור");
+  expect(
+    state.rows.find((a) => a.participant_id.endsWith("000000000109"))?.status,
+  ).toBe("confirmed");
   await page.getByRole("button", { name: "לו״ז משותף", exact: true }).click();
   await expect(
     page
@@ -163,12 +258,12 @@ test("pending services stay pending for vendors and can be explicitly approved i
   ).not.toContainText("עדיין ממתינה לאישור");
 });
 
-test("shared participant and agenda views preserve tentative bookings and photography", async ({
+test("shared participant and agenda views show booked times without manual status labels", async ({
   page,
 }) => {
   await mockWedding(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "איל — ניהול הלו״ז" }).click();
+  await enterFamily(page);
   await expect(page.locator(".participant-card")).toHaveCount(10);
   const shlomit = page.locator(".participant-card").filter({
     has: page.getByRole("heading", { name: "שלומית", exact: true }),
@@ -177,7 +272,9 @@ test("shared participant and agenda views preserve tentative bookings and photog
   await page.getByRole("button", { name: "לפי שעות", exact: true }).click();
   await expect(
     page.locator(".agenda-item").filter({ hasText: "שקד" }).first(),
-  ).toContainText("בתכנון");
+  ).toContainText("10:00");
+  await expect(page.getByText("בתכנון", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("מאושר", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "צילומי כלה" })).toBeVisible();
   expect(
     await page.evaluate(
@@ -211,13 +308,13 @@ test("bride buffer changes availability and can be adjusted without altering the
   ).toHaveCount(0);
 });
 
-test("realtime updates refresh the shared schedule and disconnection remains visible", async ({
+test("realtime updates refresh the schedule and manual refresh works after disconnection", async ({
   page,
 }) => {
   const state = await mockWedding(page);
   await page.goto("/");
   await page.getByRole("button", { name: /איילת שילוני/ }).click();
-  await expect(page.getByText("הלו״ז מתעדכן בזמן אמת")).toBeVisible();
+  await expect.poll(() => state.subscriptionReady).toBe(true);
   const row = state.rows.find(
     (a) =>
       a.participant_id.endsWith("000000000106") && a.service_type === "makeup",
@@ -253,11 +350,13 @@ test("realtime updates refresh the shared schedule and disconnection remains vis
     page.getByRole("button", { name: "עריכת שעה עבור חני", exact: true }),
   ).toBeVisible();
   for (const socket of state.sockets) socket.close();
-  await expect(page.getByText(/עדכון מיידי מנותק/)).toBeVisible();
+  row.end_time = "14:30:00";
   await page.getByRole("button", { name: "רענון הלו״ז" }).click();
   await expect(
-    page.getByRole("button", { name: "עריכת שעה עבור חני", exact: true }),
-  ).toBeVisible();
+    page
+      .locator(".appointment-card")
+      .filter({ has: page.getByRole("heading", { name: "חני", exact: true }) }),
+  ).toContainText("14:30");
 });
 
 test("a realtime change arriving during a refresh is not dropped", async ({
@@ -266,7 +365,7 @@ test("a realtime change arriving during a refresh is not dropped", async ({
   const state = await mockWedding(page);
   await page.goto("/");
   await page.getByRole("button", { name: /איילת שילוני/ }).click();
-  await expect(page.getByText("הלו״ז מתעדכן בזמן אמת")).toBeVisible();
+  await expect.poll(() => state.subscriptionReady).toBe(true);
   await expect(page.getByRole("button", { name: "רענון הלו״ז" })).toBeEnabled();
   state.holdNextRead = true;
   await page.getByRole("button", { name: "רענון הלו״ז" }).click();

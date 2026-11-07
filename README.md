@@ -31,25 +31,30 @@ Use only a Supabase publishable key (`sb_publishable_…`) or the legacy public 
 
 The application only reads `vendors`, `participants` and relational `appointments`, and updates `appointments.start_time`, `end_time` and `status`. It performs no inserts, deletes, migrations, seed operations, or changes to assignments. It uses IDs returned by the database and does not assume row ordering. Missing service records display as “לא נדרש”.
 
-Identity selection is a local display preference, not authentication. Eyal's view is a predefined frontend management interface and is not secured by a role. Other vendors can see the shared timeline; their own view offers edits to their assignments. Management allows editing all existing appointments and explicitly approving pending services. These frontend controls are not authorization controls; do not publish a schedule that requires private, authenticated access under the current anonymous policy model.
+Vendor identity selection is a local display preference. The “משפחה וחברות” card opens the shared schedule and management view after entering the local plaintext password `111`, configured in `src/config/access.ts`. The password is checked only in the frontend and is never stored in or sent to Supabase. Family access is unlocked only in memory; a reload or return to name selection requires the password again, including for previously saved management identities. This is a simple frontend entry gate, not database authentication or role authorization. Existing anonymous RLS permissions remain unchanged. Vendors can edit their assigned appointments; family management retains editing of all existing appointments and explicit approval of pending services.
 
 Only identity and the bride planning buffer are stored in localStorage. Appointment records remain in Supabase. Blocked localStorage is supported, but preferences then reset on reload.
+
+Every schedule screen includes a Hebrew back button. It returns through screens visited in the current session, then to name selection. Selecting another identity starts fresh navigation; after reloading, back returns to name selection. Navigation stays inside the static app and does not require server route rewrites.
+
+Both shared and management schedules filter by participant names from the existing `participants` records. The family entry card uses the same card layout as the vendors. The repeated bride deadline banner and the separate bride-planning section are not displayed in the family view; deadline validation and the bride's booking-sheet buffer remain in place.
 
 ## Scheduling behavior
 
 - Select a duration deliberately in 15-minute steps, then choose an available start time. Existing durations are preserved when editing.
+- There is no manual booking-status selector, status badge, or proposed/confirmed dashboard breakdown. Saving a regular appointment records its time directly; the existing database status field is maintained internally without changing the schema or rewriting untouched records.
 - Proposed, confirmed and timed pending services all reserve their interval. Endpoints are exclusive, so consecutive appointments are allowed.
 - The app checks both participant and vendor overlap, actual arrival times, participant deadlines and Shaked's hard 14:15 deadline.
 - Shaked's dressing/touch-up allowance defaults to 15 minutes. It is clearly labeled as an adjustable **per-device planning assumption** because the existing schema has no shared settings record. A change on one device does not change other devices' assumptions. A zero buffer still enforces 14:15.
-- Normal preparation hours are 09:00–18:00. An explicit option exposes other available hours with a warning. Bookings must end before midnight on the same day.
-- A pending service can be timed without approving it. Management must explicitly check the service-approval box before changing it to a planned, confirmed or approved-but-unscheduled service.
+- The booking form offers only available appointments that start and finish within 09:00–18:00. Existing records outside that window remain visible and are flagged for review; editing their time requires choosing a slot within the preparation window.
+- A pending service can be timed without approving it. The separate service-joining approval (such as Adi's hair service) remains explicit in management. Approving a timed service saves it directly; approving one without times leaves it ready to schedule.
 - “הסרת השעה” clears time fields and returns the existing service to unscheduled (or preserves pending confirmation). It does not delete the appointment.
 - Before saving, fresh records are fetched and revalidated. Updates also compare the original time/status/assignment fields; a concurrent change to the same appointment cannot be silently replaced. Existing database exclusion constraints arbitrate concurrent overlapping saves to different appointments. A save succeeds only after Supabase acknowledges it.
 - Photography events are typed read-only frontend configuration in `src/config/wedding.ts`; they do not block other participants' services.
 
 ## Realtime and reliability
 
-The app subscribes to `public.appointments`, removes its channel when unmounted, refetches on updates, refetches when the tab regains focus or connectivity, and polls every 30 seconds while visible. It also provides manual refresh and shows connection failure separately from the last successfully loaded data. Requests time out after 15 seconds.
+The app subscribes to `public.appointments`, removes its channel when unmounted, refetches on updates, refetches when the tab regains focus or connectivity, and polls every 30 seconds while visible. Synchronization runs quietly without a persistent connection-status message. Manual refresh remains available; failed data fetches show an error alongside the last successfully loaded data. Requests time out after 15 seconds.
 
 **Owner setup check:** the existing `appointments` table must already be included in the project's Supabase Realtime publication and allow reads under the existing anonymous RLS policies. No database setup is executed by this project. If events are unavailable, periodic/manual refresh remains usable. Realtime channel connection does not by itself prove the table is published; verify an actual cross-device update before wedding-day use.
 

@@ -1,6 +1,6 @@
-import { AlertCircle, Check, Heart, Scissors, Sparkles } from "lucide-react";
+import { AlertCircle, Heart, Scissors, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
-import { serviceLabels, statusLabels } from "../../config/wedding";
+import { serviceLabels } from "../../config/wedding";
 import type { AppointmentStatus, ServiceType } from "../../types/database";
 
 export function ServiceIcon({
@@ -24,13 +24,10 @@ export function ServiceLabel({ type }: { type: ServiceType }) {
     </span>
   );
 }
-export function StatusBadge({ status }: { status: AppointmentStatus }) {
-  return (
-    <span className={`status-badge ${status}`}>
-      {status === "confirmed" && <Check size={12} aria-hidden="true" />}
-      {statusLabels[status]}
-    </span>
-  );
+export function ServiceApprovalNote({ status }: { status: AppointmentStatus }) {
+  return status === "pending_confirmation" ? (
+    <p className="service-approval-note">ההצטרפות לשירות ממתינה לאישור</p>
+  ) : null;
 }
 export function Notice({
   children,

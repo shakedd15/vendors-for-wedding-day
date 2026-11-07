@@ -69,6 +69,7 @@ export async function mockWedding(page: Page) {
     holdNextRead: false,
     readHeld: false,
     releaseRead: null as (() => void) | null,
+    subscriptionReady: false,
     sockets: [] as WebSocketRoute[],
   };
   const joined = () =>
@@ -134,7 +135,7 @@ export async function mockWedding(page: Page) {
         string,
         unknown,
       ];
-      if (event === "phx_join")
+      if (event === "phx_join") {
         socket.send(
           JSON.stringify([
             joinRef,
@@ -156,6 +157,8 @@ export async function mockWedding(page: Page) {
             },
           ]),
         );
+        state.subscriptionReady = true;
+      }
       if (event === "heartbeat")
         socket.send(
           JSON.stringify([
@@ -169,4 +172,11 @@ export async function mockWedding(page: Page) {
     });
   });
   return state;
+}
+
+export async function enterFamily(page: Page) {
+  await page.getByRole("button", { name: "משפחה וחברות", exact: true }).click();
+  await page.getByLabel("סיסמה", { exact: true }).fill("111");
+  await page.getByRole("button", { name: "כניסה", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 }

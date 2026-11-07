@@ -1,9 +1,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Search } from "lucide-react";
 import type { Appointment, Participant, Vendor } from "../types/database";
-import { statusLabels } from "../config/wedding";
 import { AppointmentCard } from "../components/schedule/AppointmentCard";
-import { BufferControl } from "../components/booking/BufferControl";
 import { EmptyState } from "../components/ui/Primitives";
 import { scheduleIssues, sortAppointments } from "../utils/scheduling";
 import { hasTimes } from "../utils/time";
@@ -13,7 +11,6 @@ interface Props {
   participants: Participant[];
   vendors: Vendor[];
   buffer: number;
-  onBuffer: (n: number) => void;
   onEdit: (a: Appointment) => void;
 }
 export function ManagementPage({
@@ -21,11 +18,10 @@ export function ManagementPage({
   participants,
   vendors,
   buffer,
-  onBuffer,
   onEdit,
 }: Props) {
-  const [vendor, setVendor] = useState("all");
-  const [status, setStatus] = useState("all");
+  const [participant, setParticipant] = useState("all");
+  const [timeFilter, setTimeFilter] = useState("all");
   const [search, setSearch] = useState("");
   const issues = useMemo(
     () => scheduleIssues(appointments, buffer),
@@ -39,26 +35,13 @@ export function ManagementPage({
       label: "ללא שעה",
       count: appointments.filter((a) => !hasTimes(a)).length,
     },
-    {
-      label: "ממתינים לאישור",
-      count: appointments.filter((a) => a.status === "pending_confirmation")
-        .length,
-    },
-    {
-      label: "בתכנון",
-      count: appointments.filter((a) => a.status === "proposed").length,
-    },
-    {
-      label: "מאושרים",
-      count: appointments.filter((a) => a.status === "confirmed").length,
-    },
   ];
   const filtered = sortAppointments(
     appointments.filter(
       (a) =>
-        (vendor === "all" || a.vendor_id === vendor) &&
-        (status === "all" ||
-          (status === "missing" ? !hasTimes(a) : a.status === status)) &&
+        (participant === "all" || a.participant_id === participant) &&
+        (timeFilter === "all" ||
+          (timeFilter === "missing" ? !hasTimes(a) : hasTimes(a))) &&
         a.participant.name.includes(search.trim()),
     ),
   );
@@ -67,7 +50,6 @@ export function ManagementPage({
       <div className="page-intro">
         <span className="date-caption">התמונה המלאה, בשביל השקט</span>
         <h1>ניהול ההתארגנות</h1>
-        <p>היי איל, מכאן אפשר לתאם את כל הפרטים.</p>
       </div>
       <div className="metrics-grid">
         {metrics.map((metric) => (
@@ -101,10 +83,6 @@ export function ManagementPage({
           </button>
         ))}
       </section>
-      <details className="planning-details">
-        <summary>הנחות תכנון · המרווח של שקד</summary>
-        <BufferControl buffer={buffer} onChange={onBuffer} />
-      </details>
       <section>
         <div className="section-title">
           <h2>כל השיבוצים</h2>
@@ -121,26 +99,30 @@ export function ManagementPage({
             />
           </label>
           <label>
-            נותנת שירות
-            <select value={vendor} onChange={(e) => setVendor(e.target.value)}>
-              <option value="all">כל נותנות השירות</option>
-              {vendors.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
+            מתארגנת
+            <select
+              value={participant}
+              onChange={(e) => setParticipant(e.target.value)}
+            >
+              <option value="all">כל המתארגנות</option>
+              {[...participants]
+                .sort((a, b) => a.name.localeCompare(b.name, "he"))
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
             </select>
           </label>
           <label>
-            מצב השיבוץ
-            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            הצגת שיבוצים
+            <select
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value)}
+            >
               <option value="all">כל השיבוצים</option>
               <option value="missing">ללא שעה</option>
-              {Object.entries(statusLabels).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
+              <option value="scheduled">עם שעה</option>
             </select>
           </label>
         </div>
@@ -160,9 +142,6 @@ export function ManagementPage({
           </EmptyState>
         )}
       </section>
-      <p className="identity-note">
-        תצוגת הניהול פתוחה לבחירה, ללא אימות זהות או הרשאות תפקיד.
-      </p>
     </>
   );
 }

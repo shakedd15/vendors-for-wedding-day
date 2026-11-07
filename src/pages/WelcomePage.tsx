@@ -1,13 +1,10 @@
-import {
-  ArrowLeft,
-  CalendarDays,
-  Heart,
-  RefreshCw,
-  Settings2,
-} from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, CalendarDays, Heart, RefreshCw, Users } from "lucide-react";
 import type { Vendor } from "../types/database";
 import type { Identity } from "../types/scheduling";
 import { vendorLabels } from "../config/wedding";
+import { familyAccess } from "../config/access";
+import { FamilyAccessDialog } from "../components/ui/FamilyAccessDialog";
 import {
   EmptyState,
   Notice,
@@ -30,6 +27,7 @@ export function WelcomePage({
   refresh: () => void;
   onSelect: (identity: Identity) => void;
 }) {
+  const [familyDialogOpen, setFamilyDialogOpen] = useState(false);
   return (
     <div className="welcome-page">
       <main className="welcome-content">
@@ -100,23 +98,30 @@ export function WelcomePage({
                   />
                 </button>
               ))}
+              <button
+                className="vendor-choice family"
+                aria-label={familyAccess.label}
+                onClick={() => setFamilyDialogOpen(true)}
+              >
+                <span className="vendor-icon family">
+                  <Users size={22} aria-hidden="true" />
+                </span>
+                <span className="vendor-copy">
+                  <strong>{familyAccess.label}</strong>
+                  <span>לו״ז המתארגנות</span>
+                </span>
+                <ArrowLeft
+                  className="choice-arrow"
+                  size={18}
+                  aria-hidden="true"
+                />
+              </button>
             </div>
             {!vendors.length && (
               <EmptyState title="לא נמצאו נותנות שירות">
                 בדקי שפרטי החיבור שייכים לפרויקט הנכון.
               </EmptyState>
             )}
-            <button
-              className="manager-choice"
-              onClick={() => onSelect({ kind: "manager" })}
-            >
-              <Settings2 size={17} aria-hidden="true" />
-              <span>איל — ניהול הלו״ז</span>
-              <ArrowLeft size={15} aria-hidden="true" />
-            </button>
-            <p className="identity-note">
-              בחירת השם היא לתצוגה בלבד, ללא התחברות.
-            </p>
           </>
         )}
         <footer className="welcome-footer">
@@ -124,6 +129,15 @@ export function WelcomePage({
           <span>קצת תכנון, הרבה התרגשות</span>
         </footer>
       </main>
+      {familyDialogOpen && (
+        <FamilyAccessDialog
+          onClose={() => setFamilyDialogOpen(false)}
+          onEnter={() => {
+            setFamilyDialogOpen(false);
+            onSelect({ kind: "manager" });
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Clock3, LoaderCircle, MapPin, Trash2, X } from "lucide-react";
-import type { Appointment, AppointmentStatus } from "../../types/database";
+import type { Appointment } from "../../types/database";
 import type { BookingDraft } from "../../types/scheduling";
-import { serviceLabels, statusLabels } from "../../config/wedding";
-import { availableSlots, validateBooking } from "../../utils/scheduling";
+import { serviceLabels } from "../../config/wedding";
+import {
+  availableSlots,
+  buildBookingDraft,
+  validateBooking,
+} from "../../utils/scheduling";
 import { displayTime, fromMinutes, toMinutes } from "../../utils/time";
 import { updateAppointmentTimes } from "../../services/appointmentService";
 import { Notice, ServiceLabel } from "../ui/Primitives";
@@ -36,15 +40,7 @@ export function BookingSheet({
       : "",
   );
   const [start, setStart] = useState(a.start_time?.slice(0, 5) || "");
-  const [status, setStatus] = useState<AppointmentStatus>(
-    a.status === "unscheduled" ? "proposed" : a.status,
-  );
   const [approved, setApproved] = useState(false);
-  const [outside, setOutside] = useState(
-    Boolean(
-      initialStart !== null && (initialStart < 540 || (initialEnd ?? 0) > 1080),
-    ),
-  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -54,23 +50,14 @@ export function BookingSheet({
   );
   const visibleSlots = slots.filter(
     (time) =>
-      outside ||
-      (toMinutes(time)! >= 540 && toMinutes(time)! + Number(duration) <= 1080),
+      toMinutes(time)! >= 540 && toMinutes(time)! + Number(duration) <= 1080,
   );
   const startMinutes = toMinutes(start);
   const endMinutes =
     startMinutes === null || !duration ? null : startMinutes + Number(duration);
   const end =
     endMinutes !== null && endMinutes < 1440 ? fromMinutes(endMinutes) : null;
-  const effectiveStatus =
-    a.status === "pending_confirmation" && !approved
-      ? "pending_confirmation"
-      : status;
-  const draft: BookingDraft = {
-    start_time: start || null,
-    end_time: end,
-    status: effectiveStatus,
-  };
+  const draft = buildBookingDraft(a, start || null, end, manager && approved);
   const validation = validateBooking(
     a,
     draft,
@@ -82,8 +69,7 @@ export function BookingSheet({
     !!duration &&
     visibleSlots.includes(start) &&
     validation.errors.length === 0;
-  const approvalOnly =
-    manager && approved && !start && !duration && status === "unscheduled";
+  const approvalOnly = manager && approved && !start && !duration;
   useEffect(() => {
     const element = dialog.current;
     element?.showModal();
@@ -99,14 +85,7 @@ export function BookingSheet({
     setSaving(true);
     setError(null);
     const payload: BookingDraft = clear
-      ? {
-          start_time: null,
-          end_time: null,
-          status:
-            a.status === "pending_confirmation"
-              ? "pending_confirmation"
-              : "unscheduled",
-        }
+      ? buildBookingDraft(a, null, null)
       : draft;
     try {
       const updated = await updateAppointmentTimes(
@@ -185,23 +164,14 @@ export function BookingSheet({
           <fieldset disabled={saving}>
             {a.status === "pending_confirmation" && (
               <div className="pending-panel">
-                <strong>השירות עדיין ממתין לאישור</strong>
-                <p>אפשר לתכנן שעה; השיבוץ יישאר ממתין לאישור.</p>
+                <strong>ההצטרפות לשירות עדיין ממתינה לאישור</strong>
+                <p>אפשר לקבוע שעה גם לפני אישור ההצטרפות.</p>
                 {manager && (
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
                       checked={approved}
-                      onChange={(e) => {
-                        setApproved(e.target.checked);
-                        setStatus(
-                          e.target.checked
-                            ? a.start_time
-                              ? "proposed"
-                              : "unscheduled"
-                            : "pending_confirmation",
-                        );
-                      }}
+                      onChange={(e) => setApproved(e.target.checked)}
                     />
                     אני מאשר/ת את הצטרפותה לשירות
                   </label>
@@ -251,14 +221,6 @@ export function BookingSheet({
             <p className="field-help">
               משך ושעות בקפיצות של 15 דקות. מוצגות שעות פנויות בלבד.
             </p>
-            <label className="checkbox-label outside-toggle">
-              <input
-                type="checkbox"
-                checked={outside}
-                onChange={(e) => setOutside(e.target.checked)}
-              />
-              הצגת שעות גם מחוץ ל־09:00–18:00
-            </label>
             {!!duration && !visibleSlots.length && (
               <Notice kind="warning">
                 לא נמצא זמן פנוי למשך שנבחר. נסי משך אחר או בדקי את הלו״ז
@@ -275,31 +237,6 @@ export function BookingSheet({
               <span>שעת סיום</span>
               <strong dir="ltr">{end || "—"}</strong>
             </div>
-            <label className="status-select" htmlFor="booking-status">
-              סטטוס השיבוץ
-              <select
-                id="booking-status"
-                value={effectiveStatus}
-                disabled={a.status === "pending_confirmation" && !approved}
-                onChange={(e) => setStatus(e.target.value as AppointmentStatus)}
-              >
-                {(
-                  [
-                    "proposed",
-                    "confirmed",
-                    "pending_confirmation",
-                    ...(approved && !start ? ["unscheduled" as const] : []),
-                  ] as AppointmentStatus[]
-                ).map((s) => (
-                  <option key={s} value={s}>
-                    {statusLabels[s]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="field-help">
-              ״בתכנון״ שומר את השעה פנויה עבורך, עד לאישור סופי.
-            </p>
             {a.participant.name === "שקד" && (
               <BufferControl buffer={buffer} onChange={onBuffer} />
             )}

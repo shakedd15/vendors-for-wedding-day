@@ -3,6 +3,24 @@ import type { Appointment } from "../types/database";
 import type { BookingDraft, ValidationResult } from "../types/scheduling";
 import { fromMinutes, hasTimes, overlaps, toMinutes } from "./time";
 
+export function buildBookingDraft(
+  appointment: Pick<Appointment, "status">,
+  start_time: string | null,
+  end_time: string | null,
+  approvePending = false,
+): BookingDraft {
+  return {
+    start_time,
+    end_time,
+    status:
+      appointment.status === "pending_confirmation" && !approvePending
+        ? "pending_confirmation"
+        : start_time && end_time
+          ? "confirmed"
+          : "unscheduled",
+  };
+}
+
 export function validateBooking(
   appointment: Appointment,
   draft: BookingDraft,
@@ -17,12 +35,10 @@ export function validateBooking(
     draft.status !== "pending_confirmation" &&
     !approvePending
   )
-    errors.push(
-      "השירות ממתין לאישור. נדרש אישור מפורש במסך הניהול לפני שינוי הסטטוס.",
-    );
+    errors.push("ההצטרפות לשירות עדיין ממתינה לאישור במסך הניהול.");
   if (draft.start_time === null && draft.end_time === null) {
     if (!["unscheduled", "pending_confirmation"].includes(draft.status))
-      errors.push("יש לבחור שעה ומשך לפני אישור או תכנון השיבוץ.");
+      errors.push("בחרי שעת התחלה ומשך טיפול, או הסירי את השעה שנקבעה.");
     return { errors, warnings };
   }
   const start = toMinutes(draft.start_time),
@@ -38,7 +54,7 @@ export function validateBooking(
     return { errors, warnings };
   }
   if (draft.status === "unscheduled")
-    errors.push("כדי לשמור שעות יש לבחור סטטוס בתכנון או מאושר.");
+    errors.push("השעות לא נשמרו כשיבוץ תקין. פתחי את התור ושמרי שוב.");
   const arrival = toMinutes(appointment.participant.arrival_time);
   if (arrival !== null && start < arrival)
     errors.push("השיבוץ מתחיל לפני שעת ההגעה.");

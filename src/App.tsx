@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ArrowRight,
   CalendarDays,
   CheckCircle2,
   Heart,
@@ -11,6 +12,7 @@ import {
 import { useWeddingData } from "./hooks/useWeddingData";
 import { usePreferences } from "./hooks/usePreferences";
 import { configError } from "./lib/supabase";
+import { familyAccess } from "./config/access";
 import { WelcomePage } from "./pages/WelcomePage";
 import { MySchedulePage } from "./pages/MySchedulePage";
 import { SharedSchedulePage } from "./pages/SharedSchedulePage";
@@ -26,9 +28,13 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(
     prefs.identity?.kind === "manager" ? "shared" : "mine",
   );
+  const [screenHistory, setScreenHistory] = useState<Screen[]>([]);
+  const [familyUnlocked, setFamilyUnlocked] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const manager = prefs.identity?.kind === "manager";
+  const manager = prefs.identity?.kind === "manager" && familyUnlocked;
+  const familyNeedsPassword =
+    prefs.identity?.kind === "manager" && !familyUnlocked;
   const selectedId =
     prefs.identity?.kind === "vendor" ? prefs.identity.id : undefined;
   const vendor = data.vendors.find((v) => v.id === selectedId);
@@ -38,14 +44,29 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [success]);
   const select = (identity: Identity | null) => {
+    setFamilyUnlocked(identity?.kind === "manager");
     prefs.selectIdentity(identity);
+    setScreenHistory([]);
     setScreen(identity?.kind === "manager" ? "shared" : "mine");
     setEditing(null);
     setSuccess(null);
     window.scrollTo(0, 0);
   };
   const changeScreen = (next: Screen) => {
+    if (next === screen) return;
+    setScreenHistory((previous) => [...previous, screen]);
     setScreen(next);
+    window.scrollTo(0, 0);
+  };
+  const goBack = () => {
+    const previous = screenHistory.at(-1);
+    if (!previous) {
+      select(null);
+      return;
+    }
+    setScreenHistory((history) => history.slice(0, -1));
+    setScreen(previous);
+    setSuccess(null);
     window.scrollTo(0, 0);
   };
   const openBooking = (appointment: Appointment) => {
@@ -56,6 +77,7 @@ export default function App() {
   };
   if (
     !prefs.identity ||
+    familyNeedsPassword ||
     configError ||
     (!data.loading && !data.error && !manager && !vendor)
   )
@@ -82,7 +104,9 @@ export default function App() {
             aria-label="החלפת משתמשת"
           >
             <UserRound size={16} />
-            <span>{manager ? "איל" : vendor?.name || "החשבון שלי"}</span>
+            <span>
+              {manager ? familyAccess.label : vendor?.name || "החשבון שלי"}
+            </span>
           </button>
         </div>
         <div className="header-subline">
@@ -94,15 +118,11 @@ export default function App() {
         </div>
       </header>
       <main id="main-content" className="main-content">
-        <div className="connection-bar">
-          <span className={`connection-indicator ${data.connection}`} />
-          <span>
-            {data.connection === "connected"
-              ? "הלו״ז מתעדכן בזמן אמת"
-              : data.connection === "connecting"
-                ? "מתחברות לעדכונים…"
-                : "עדכון מיידי מנותק · נבדוק שוב כל חצי דקה"}
-          </span>
+        <div className="schedule-actions">
+          <button type="button" className="back-button" onClick={goBack}>
+            <ArrowRight size={18} aria-hidden="true" />
+            <span>חזרה</span>
+          </button>
           <button
             onClick={() => {
               void data.refresh();
@@ -140,7 +160,6 @@ export default function App() {
               <SharedSchedulePage
                 appointments={data.appointments}
                 participants={data.participants}
-                vendors={data.vendors}
                 selectedVendor={selectedId}
                 manager={manager}
                 onEdit={openBooking}
@@ -150,7 +169,6 @@ export default function App() {
               <ManagementPage
                 {...data}
                 buffer={prefs.buffer}
-                onBuffer={prefs.changeBuffer}
                 onEdit={openBooking}
               />
             )}

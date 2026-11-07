@@ -355,19 +355,14 @@ bdi {
   color: #a79b91;
   margin-inline-start: auto;
 }
-.manager-choice {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  background: transparent;
-  color: #796b61;
-  margin-top: 19px;
-  font-size: 13px;
+.vendor-icon.family {
+  background: #eee9e2;
+  color: #887561;
 }
-.manager-choice > svg:last-child {
-  margin-inline-start: 2px;
+.family-password-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
 }
 .identity-note {
   font-size: 11px;
@@ -437,29 +432,21 @@ bdi {
   margin: 0 auto;
   padding: 0 20px calc(98px + env(safe-area-inset-bottom));
 }
-.connection-bar {
+.schedule-actions {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+}
+.back-button {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
-  min-height: 51px;
-  color: #83776c;
-  font-size: 10px;
-}
-.connection-indicator {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #b39a6f;
-  flex-shrink: 0;
-}
-.connection-indicator.connected {
-  background: #91a48d;
-}
-.connection-indicator.disconnected {
-  background: #bd8a5b;
-}
-.connection-bar > span:nth-child(2) {
-  flex: 1;
+  min-height: 44px;
+  padding: 8px 4px;
+  background: transparent;
+  color: #766459;
+  font-size: 13px;
 }
 .refresh-button {
   display: flex;
@@ -493,41 +480,6 @@ bdi {
   color: #85786e;
   font-size: 13px;
   margin-top: 7px;
-}
-.bride-deadline {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #f1e6e5;
-  padding: 16px;
-  border-radius: 14px;
-  margin-bottom: 28px;
-  color: #80545c;
-}
-.deadline-icon {
-  display: flex;
-  width: 39px;
-  height: 39px;
-  justify-content: center;
-  align-items: center;
-  border-radius: 50%;
-  background: #fbf5f3;
-  flex-shrink: 0;
-}
-.bride-deadline strong {
-  font-size: 13px;
-  font-weight: 600;
-}
-.bride-deadline p {
-  font-size: 11px;
-  color: #926b71;
-  margin-top: 3px;
-}
-.deadline-time {
-  margin-inline-start: auto;
-  font-size: 23px;
-  font-weight: 400;
-  letter-spacing: -1px;
 }
 .section-title {
   display: flex;
@@ -565,32 +517,10 @@ bdi {
   background: #eaf0e9;
   color: #667d67;
 }
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  border-radius: 6px;
-  padding: 4px 7px;
-  width: fit-content;
-  font-size: 10px;
-  line-height: 1.7;
-  white-space: nowrap;
-}
-.status-badge.unscheduled {
-  background: #f3f0eb;
-  color: #877a6e;
-}
-.status-badge.proposed {
-  background: #f8edd7;
-  color: #89692c;
-}
-.status-badge.confirmed {
-  background: #e8f0e9;
-  color: #53725b;
-}
-.status-badge.pending_confirmation {
-  background: #f2eaf3;
+.service-approval-note {
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 6px 0 12px;
   color: #8b638e;
 }
 .progress-card {
@@ -901,9 +831,6 @@ bdi {
   color: #76675a;
   margin: 6px 0 8px;
 }
-.participant-service .status-badge {
-  margin-bottom: 5px;
-}
 .participant-service .text-button {
   font-size: 11px;
 }
@@ -1096,12 +1023,6 @@ bdi {
   color: #897b6c;
   font-size: 10px;
 }
-.metric:last-child {
-  background: #eaf0e9;
-}
-.metric:last-child strong {
-  color: #6f846d;
-}
 .management-issues {
   padding: 17px;
   border-radius: 12px;
@@ -1277,10 +1198,6 @@ bdi {
   min-height: 19px;
   accent-color: #985e69;
 }
-.outside-toggle {
-  color: #8f7d6d;
-  font-size: 11px;
-}
 .calculated-end {
   display: flex;
   align-items: center;
@@ -1297,9 +1214,6 @@ bdi {
   color: #6f5847;
   font-size: 23px;
   font-weight: 400;
-}
-.status-select {
-  margin-top: 12px;
 }
 .pending-panel {
   padding: 14px;

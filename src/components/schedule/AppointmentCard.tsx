@@ -1,7 +1,7 @@
 import { ArrowLeft, Clock3, MapPin } from "lucide-react";
 import type { Appointment } from "../../types/database";
 import { displayTime, hasTimes } from "../../utils/time";
-import { ServiceLabel, StatusBadge } from "../ui/Primitives";
+import { ServiceLabel, ServiceApprovalNote } from "../ui/Primitives";
 
 export function AppointmentCard({
   appointment: a,
@@ -17,7 +17,6 @@ export function AppointmentCard({
     <article className={`appointment-card ${a.service_type}`}>
       <div className="card-top">
         <ServiceLabel type={a.service_type} />
-        <StatusBadge status={a.status} />
       </div>
       <div className="appointment-person">
         <h3>
@@ -59,6 +58,7 @@ export function AppointmentCard({
           </span>
         )}
       </div>
+      <ServiceApprovalNote status={a.status} />
       {onEdit && (
         <button
           className={`card-action ${timed ? "quiet" : ""}`}
