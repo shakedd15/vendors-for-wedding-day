@@ -1,6 +1,155 @@
 import { expect, test } from "@playwright/test";
 import { enterFamily, mockWedding, vendors } from "./fixtures";
 
+test("wide table asks for phone rotation and fits all columns in landscape without sideways scrolling", async ({
+  page,
+}) => {
+  await mockWedding(page);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+  await enterFamily(page);
+  await page.getByRole("button", { name: "טבלה", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "צפייה לרוחב", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "צפייה לרוחב", exact: true }).click();
+  const wide = page.getByRole("dialog", { name: "תצוגת טבלה לרוחב" });
+  await expect(
+    wide.getByText("סובבי את הטלפון לרוחב", { exact: true }),
+  ).toBeVisible();
+  await expect(wide.getByRole("table")).not.toBeVisible();
+  await wide.screenshot({ path: "test-results/table-rotate-portrait.png" });
+  for (const [width, height] of [
+    [812, 375],
+    [667, 375],
+  ]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await expect(wide.getByRole("table")).toBeVisible();
+    const region = wide.getByRole("region", { name: "טבלת הלו״ז" });
+    expect(
+      await region.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth + 1,
+      ),
+    ).toBe(true);
+    await expect(wide.getByRole("columnheader")).toHaveCount(6);
+    const bounds = (await region.boundingBox())!;
+    for (const header of await wide.getByRole("columnheader").all()) {
+      const box = (await header.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(bounds.x - 1);
+      expect(box.x + box.width).toBeLessThanOrEqual(
+        bounds.x + bounds.width + 1,
+      );
+    }
+    if (width === 812)
+      await wide.screenshot({ path: "test-results/table-wide-812.png" });
+  }
+  await wide.getByRole("button", { name: "חזרה", exact: true }).click();
+  await expect(wide).toHaveCount(0);
+  expect(await page.evaluate(() => document.body.style.overflow)).not.toBe(
+    "hidden",
+  );
+  await page.getByRole("button", { name: "צפייה לרוחב", exact: true }).click();
+  await wide
+    .getByRole("button", { name: /^עריכת שיבוץ של שקד אצל/ })
+    .first()
+    .click();
+  await expect(wide).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "סגירת חלון השיבוץ" }).click();
+  expect(await page.evaluate(() => document.body.style.overflow)).not.toBe(
+    "hidden",
+  );
+});
+
+test("family table uses actual vendor columns and timed assignments, supports participant filtering and stays within the phone width", async ({
+  page,
+}) => {
+  const state = await mockWedding(page);
+  await page.goto("/");
+  await enterFamily(page);
+  await expect(
+    page.getByRole("button", { name: "טבלה", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "טבלה", exact: true }).click();
+  const table = page.getByRole("table", { name: "לו״ז לפי שעות וספקיות" });
+  await expect(table).toBeVisible();
+  await page.setViewportSize({ width: 1100, height: 1000 });
+  await page
+    .getByRole("region", { name: "טבלת הלו״ז" })
+    .screenshot({ path: "test-results/family-table-desktop.png" });
+  await expect(table.getByRole("columnheader")).toHaveCount(6);
+  for (const vendor of state.vendors)
+    await expect(
+      table.getByRole("columnheader", {
+        name: `${vendor.name} (${vendor.service_type === "hair" ? "שיער" : "איפור"})`,
+        exact: true,
+      }),
+    ).toBeVisible();
+  const ten = table.getByRole("row").filter({
+    has: page.getByRole("rowheader", { name: "10:00–11:00", exact: true }),
+  });
+  const eleven = table.getByRole("row").filter({
+    has: page.getByRole("rowheader", { name: "11:00–12:00", exact: true }),
+  });
+  const twelve = table.getByRole("row").filter({
+    has: page.getByRole("rowheader", { name: "12:00–13:00", exact: true }),
+  });
+  await expect(ten).toContainText("שקד");
+  await expect(eleven).toContainText("שקד");
+  await expect(twelve).not.toContainText("שקד");
+  await expect(ten).toContainText("10:00–12:00");
+  await expect(
+    table.getByRole("row").filter({
+      has: page.getByRole("rowheader", { name: "ללא שעה", exact: true }),
+    }),
+  ).toContainText("חני");
+  for (const width of [375, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    const region = page.getByRole("region", { name: "טבלת הלו״ז" });
+    expect(
+      await region.evaluate(
+        (element) => element.scrollWidth > element.clientWidth,
+      ),
+    ).toBe(true);
+    if (width === 375) {
+      await region.evaluate((element) => {
+        element.scrollLeft = -element.scrollWidth;
+      });
+      await page.screenshot({
+        path: "test-results/family-table-375.png",
+        fullPage: true,
+      });
+      await region.evaluate((element) => {
+        element.scrollLeft = 0;
+      });
+    }
+  }
+  await page
+    .getByRole("combobox", { name: "מתארגנת", exact: true })
+    .selectOption({ label: "חני" });
+  await expect(
+    table.getByRole("button", { name: /^עריכת שיבוץ של חני אצל/ }),
+  ).toHaveCount(2);
+  await expect(table).not.toContainText("10:00–12:00");
+  await table
+    .getByRole("button", { name: /^עריכת שיבוץ של חני אצל/ })
+    .first()
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "סגירת חלון השיבוץ" }).click();
+  await page.getByRole("button", { name: "החלפת משתמשת" }).click();
+  await page.getByRole("button", { name: /חן שקד/ }).click();
+  await page.getByRole("button", { name: "לו״ז משותף", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "טבלה", exact: true }),
+  ).toHaveCount(0);
+});
+
 test("family can edit existing wedding moments, add a point event and see saved changes in both views", async ({
   page,
 }) => {

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from "react";
-import { Camera, Clock3, Users } from "lucide-react";
-import type { Appointment, Participant } from "../types/database";
+import { Camera, Clock3, Table2, Users } from "lucide-react";
+import type { Appointment, Participant, Vendor } from "../types/database";
 import { serviceLabels, type PhotographyEvent } from "../config/wedding";
 import { Photography } from "../components/schedule/Photography";
 import {
@@ -17,10 +17,16 @@ const WeddingEventSheet = lazy(() =>
     default: module.WeddingEventSheet,
   })),
 );
+const ScheduleTable = lazy(() =>
+  import("../components/schedule/ScheduleTable").then((module) => ({
+    default: module.ScheduleTable,
+  })),
+);
 
 interface Props {
   appointments: Appointment[];
   participants: Participant[];
+  vendors: Vendor[];
   selectedVendor?: string;
   onEdit: (a: Appointment) => void;
   manager: boolean;
@@ -32,6 +38,7 @@ interface Props {
 export function SharedSchedulePage({
   appointments,
   participants,
+  vendors,
   selectedVendor,
   onEdit,
   manager,
@@ -40,7 +47,9 @@ export function SharedSchedulePage({
   eventsError,
   onEventSaved,
 }: Props) {
-  const [view, setView] = useState<"participants" | "time">("participants");
+  const [view, setView] = useState<"participants" | "time" | "table">(
+    "participants",
+  );
   const [filter, setFilter] = useState("all");
   const [editingEvent, setEditingEvent] = useState<
     PhotographyEvent | null | undefined
@@ -109,6 +118,16 @@ export function SharedSchedulePage({
           <Clock3 size={17} />
           לפי שעות
         </button>
+        {manager && (
+          <button
+            aria-pressed={view === "table"}
+            className={view === "table" ? "active" : ""}
+            onClick={() => setView("table")}
+          >
+            <Table2 size={17} aria-hidden="true" />
+            טבלה
+          </button>
+        )}
       </div>
       <label className="filter-label" htmlFor="shared-participant">
         מתארגנת
@@ -214,6 +233,14 @@ export function SharedSchedulePage({
               </article>
             ))}
         </div>
+      ) : view === "table" && manager ? (
+        <Suspense fallback={<p role="status">טוענות את הטבלה…</p>}>
+          <ScheduleTable
+            vendors={vendors}
+            appointments={filtered}
+            onEdit={onEdit}
+          />
+        </Suspense>
       ) : (
         <section className="agenda">
           {manager && (
@@ -325,7 +352,7 @@ export function SharedSchedulePage({
         </section>
       )}
       {!participants.length && <EmptyState title="רשימת המתארגנות ריקה" />}
-      {view === "participants" && (
+      {(view === "participants" || view === "table") && (
         <Photography
           events={events}
           manager={manager}

@@ -47,6 +47,10 @@ Every schedule screen includes a Hebrew back button that stays visible at the to
 
 Both shared and management schedules filter by participant names from the existing `participants` records. The family entry card uses the same card layout as the vendors. The repeated bride deadline banner and the separate bride-planning section are not displayed in the family view; deadline validation and the bride's booking-sheet buffer remain in place.
 
+Family access also includes a “טבלה” shared-schedule view. Actual vendors form the columns, labeled with their hair/makeup service; hourly rows show assigned participants and their exact appointment times. Long appointments appear in each hour they cover, using exclusive end boundaries. Unscheduled/incomplete records stay visible in a separate final row, and participant filtering applies to this view too. Existing out-of-window records extend the grid so they are not hidden. On phones the table scrolls inside its own region with pinned column headers and time labels; the page itself does not overflow. Wedding moments remain a separate section. This view needs no database changes.
+
+“צפייה לרוחב” opens a viewport-filling table viewer. Portrait phones show a prompt to rotate physically; in landscape all five vendor columns fit across the available safe-area width and only vertical scrolling is needed. The browser follows the phone's ordinary orientation setting; the app does not rely on orientation-lock or browser-fullscreen APIs. Close/back restores the normal view and page scrolling, and editing a booking closes the wide viewer before opening its editor.
+
 ## Scheduling behavior
 
 - Select a duration deliberately in 5-minute steps, then choose an available start time in 5-minute steps. Existing durations are preserved when editing.

@@ -798,6 +798,269 @@ bdi {
   color: #8e5b64;
   box-shadow: 0 2px 6px #55443408;
 }
+.table-scroll-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  color: #8b746c;
+  font-size: 11px;
+}
+.table-view-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.table-view-tools .table-scroll-hint {
+  margin: 0;
+}
+.landscape-button {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 10px 12px;
+  min-height: 44px;
+}
+.wide-table-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100dvw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: max(8px, env(safe-area-inset-top))
+    max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
+  border: 0;
+  background: #f8f6f2;
+  color: #37332f;
+  overflow: hidden;
+}
+.wide-table-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wide-table-dialog::backdrop {
+  background: #f8f6f2;
+}
+.wide-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.wide-table-toolbar h2 {
+  font-size: 17px;
+}
+.wide-table-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.wide-table-dialog .schedule-table-scroll {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+}
+.wide-table-dialog .schedule-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 100%;
+}
+.wide-table-dialog .schedule-table th,
+.wide-table-dialog .schedule-table td {
+  min-width: 0;
+  width: auto;
+  max-width: none;
+  padding: 6px 4px;
+  overflow-wrap: anywhere;
+}
+.wide-table-dialog .schedule-table thead th {
+  height: 54px;
+  font-size: 12px;
+}
+.wide-table-dialog .schedule-table tbody th,
+.wide-table-dialog .schedule-table tbody td {
+  height: 58px;
+}
+.wide-table-dialog .schedule-table .table-time-column {
+  min-width: 80px;
+  width: 80px;
+  max-width: 80px;
+  padding-inline: 3px;
+  font-size: 10px;
+}
+.wide-table-dialog .table-booking-button {
+  min-width: 0;
+  padding: 4px;
+}
+.wide-table-dialog .table-booking-button strong {
+  font-size: 13px;
+}
+.wide-table-dialog .table-booking-button bdi {
+  font-size: 10px;
+}
+.wide-table-rotate {
+  display: none;
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .wide-table-content {
+    display: none;
+  }
+  .wide-table-rotate {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    color: #985e69;
+  }
+  .wide-table-rotate > svg {
+    transform: rotate(90deg);
+    margin-bottom: 12px;
+  }
+  .wide-table-rotate h3 {
+    font-size: 22px;
+  }
+  .wide-table-rotate p {
+    font-size: 14px;
+  }
+  .wide-table-rotate .field-help {
+    font-size: 12px;
+    margin-top: 8px;
+  }
+}
+.schedule-table-scroll {
+  position: relative;
+  isolation: isolate;
+  max-height: 70dvh;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #dfc9cd;
+  border-radius: 14px;
+}
+.schedule-table-scroll:focus-visible {
+  outline: 2px solid var(--rose);
+  outline-offset: 3px;
+}
+.schedule-table {
+  width: max-content;
+  min-width: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+  font-size: 12px;
+}
+.schedule-table th,
+.schedule-table td {
+  min-width: 144px;
+  width: 144px;
+  max-width: 190px;
+  padding: 9px;
+  text-align: center;
+  vertical-align: middle;
+  border-inline-end: 1px solid #e6d7da;
+  border-bottom: 1px solid #e6d7da;
+}
+.schedule-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 70px;
+  background: #efdde1;
+  color: #783d4b;
+  font-weight: 600;
+  line-height: 1.65;
+}
+.schedule-table thead th.hair {
+  background: #e5ece4;
+  color: #52674f;
+}
+.table-service-type {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+}
+.schedule-table tbody tr {
+  --table-row-bg: #fff;
+}
+.schedule-table tbody tr:nth-child(even) {
+  --table-row-bg: #fbf0f2;
+}
+.schedule-table tbody tr.table-unscheduled-row {
+  --table-row-bg: #f2ede7;
+}
+.schedule-table tbody th,
+.schedule-table tbody td {
+  height: 70px;
+  background: var(--table-row-bg);
+}
+.schedule-table .table-time-column {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  min-width: 104px;
+  width: 104px;
+  max-width: 104px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+}
+.schedule-table thead .table-time-column {
+  z-index: 3;
+}
+.table-booking + .table-booking {
+  border-top: 1px solid #e4d6d5;
+  margin-top: 5px;
+  padding-top: 5px;
+}
+.table-booking-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 7px 4px;
+  min-height: 44px;
+  border-radius: 8px;
+  background: transparent;
+  color: #57443f;
+  line-height: 1.6;
+}
+.table-booking-button:hover {
+  background: #eedde0;
+}
+.table-booking-button strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.table-booking-button bdi,
+.table-booking-button > span {
+  font-size: 11px;
+  color: #887267;
+}
+.table-booking .service-approval-note {
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+.empty-slot {
+  color: #b8a7a2;
+}
+@media (min-width: 900px) {
+  .table-scroll-hint {
+    display: none;
+  }
+}
 .filter-label {
   grid-template-columns: auto 1fr;
   align-items: center;

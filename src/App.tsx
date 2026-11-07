@@ -167,6 +167,7 @@ export default function App() {
               <SharedSchedulePage
                 appointments={data.appointments}
                 participants={data.participants}
+                vendors={data.vendors}
                 selectedVendor={selectedId}
                 manager={manager}
                 onEdit={openBooking}
