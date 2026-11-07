@@ -58,7 +58,15 @@ Both shared and management schedules filter by participant names from the existi
 - A pending service can be timed without approving it. The separate service-joining approval (such as Adi's hair service) remains explicit in management. Approving a timed service saves it directly; approving one without times leaves it ready to schedule.
 - “הסרת השעה” clears time fields and returns the existing service to unscheduled (or preserves pending confirmation). It does not delete the appointment.
 - Before saving, fresh records are fetched and revalidated. Updates also compare the original time/status/assignment fields; a concurrent change to the same appointment cannot be silently replaced. Existing database exclusion constraints arbitrate concurrent overlapping saves to different appointments. A save succeeds only after Supabase acknowledges it.
-- Photography events are typed read-only frontend configuration in `src/config/wedding.ts`; they do not block other participants' services.
+- Wedding moments are stored separately from hair/makeup appointments and do not block participants' services. Family management can edit their titles/times and add events; vendors see the saved timeline without editing controls.
+
+## Editable wedding moments
+
+To enable editing “רגעים ששומרים”, the owner must review and run [wedding-events.sql](docs/wedding-events.sql) in Supabase SQL Editor. This creates `public.wedding_events` with `id` (UUID), `title` (text), `start_time` (time), and nullable `end_time` (time). The three existing photography events are inserted only when the table is first created; re-running setup preserves subsequent edits and does not recreate deleted or renamed events. No existing vendors, participants or appointments are changed.
+
+The script enables reading and column-limited creation/updates for the existing anonymous frontend access model, plus Realtime publication when available. The family password gates the UI only; it does not create a database role or backend authentication. There is no event delete operation in this version. All events belong to this wedding date.
+
+Before the table exists, the original configuration remains a read-only fallback. Missing setup disables event editing without breaking appointments. Once configured, both shared views use actual database events, including an intentionally empty event list. Events load on entry/focus/manual refresh, poll every 30 seconds while visible, and subscribe to Realtime independently from appointments. Saving updates local state only after database acknowledgment; concurrent updates compare the original title and times and cannot silently overwrite another edit. Events support 5-minute times, point events with no end, and intervals ending after their start within the same day.
 
 ## Realtime and reliability
 

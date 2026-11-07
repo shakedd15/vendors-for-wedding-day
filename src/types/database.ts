@@ -26,10 +26,22 @@ export interface Appointment extends AppointmentRow {
   participant: Participant;
   vendor: Vendor;
 }
+export type WeddingEventRow = {
+  id: string;
+  title: string;
+  start_time: string;
+  end_time: string | null;
+};
 type Table<Row> = { Row: Row; Insert: never; Update: never; Relationships: [] };
 export interface Database {
   public: {
     Tables: {
+      wedding_events: Omit<Table<WeddingEventRow>, "Insert" | "Update"> & {
+        Insert: { title: string; start_time: string; end_time?: string | null };
+        Update: Partial<
+          Pick<WeddingEventRow, "title" | "start_time" | "end_time">
+        >;
+      };
       vendors: Omit<Table<Vendor>, "Update"> & {
         Update: { additional_details?: string | null };
       };

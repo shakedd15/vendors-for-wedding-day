@@ -69,6 +69,28 @@ export async function mockWedding(page: Page) {
     })),
     detailsColumnAvailable: true,
     failDetailsSave: false,
+    eventsAvailable: true,
+    eventsSubscriptionReady: false,
+    weddingEvents: [
+      {
+        id: id(900),
+        title: "צילומי כלה",
+        start_time: "14:30:00",
+        end_time: "15:00:00" as string | null,
+      },
+      {
+        id: id(901),
+        title: "מפגש חתן וכלה",
+        start_time: "15:00:00",
+        end_time: null as string | null,
+      },
+      {
+        id: id(902),
+        title: "צילומי זוגיות",
+        start_time: "15:10:00",
+        end_time: "17:00:00" as string | null,
+      },
+    ],
     failSave: false,
     failReads: false,
     stale: false,
@@ -91,6 +113,50 @@ export async function mockWedding(page: Page) {
     if (state.failReads && route.request().method() === "GET")
       return route.fulfill({ status: 503, json: { message: "unavailable" } });
     const table = url.pathname.split("/").pop();
+    if (table === "wedding_events") {
+      if (!state.eventsAvailable)
+        return route.fulfill({
+          status: 404,
+          json: { code: "PGRST205", message: "missing table" },
+        });
+      if (route.request().method() === "POST") {
+        const body = route.request().postDataJSON() as {
+          title: string;
+          start_time: string;
+          end_time: string | null;
+        };
+        expect(Object.keys(body).sort()).toEqual([
+          "end_time",
+          "start_time",
+          "title",
+        ]);
+        const created = { id: id(900 + state.weddingEvents.length), ...body };
+        state.weddingEvents.push(created);
+        return route.fulfill({ json: created });
+      }
+      if (route.request().method() === "PATCH") {
+        const row = state.weddingEvents.find(
+          (event) => `eq.${event.id}` === url.searchParams.get("id"),
+        );
+        const body = route.request().postDataJSON() as Record<string, unknown>;
+        expect(Object.keys(body).sort()).toEqual([
+          "end_time",
+          "start_time",
+          "title",
+        ]);
+        if (
+          !row ||
+          url.searchParams.get("title") !== `eq.${row.title}` ||
+          url.searchParams.get("start_time") !== `eq.${row.start_time}` ||
+          url.searchParams.get("end_time") !==
+            (row.end_time === null ? "is.null" : `eq.${row.end_time}`)
+        )
+          return route.fulfill({ json: null });
+        Object.assign(row, body);
+        return route.fulfill({ json: row });
+      }
+      return route.fulfill({ json: [...state.weddingEvents].reverse() });
+    }
     if (route.request().method() === "PATCH") {
       if (table === "vendors") {
         const body = route.request().postDataJSON() as {
@@ -140,17 +206,15 @@ export async function mockWedding(page: Page) {
     }
     const response =
       table === "vendors"
-        ? [...state.vendors]
-            .reverse()
-            .map((vendor) =>
-              state.detailsColumnAvailable
-                ? vendor
-                : {
-                    id: vendor.id,
-                    name: vendor.name,
-                    service_type: vendor.service_type,
-                  },
-            )
+        ? [...state.vendors].reverse().map((vendor) =>
+            state.detailsColumnAvailable
+              ? vendor
+              : {
+                  id: vendor.id,
+                  name: vendor.name,
+                  service_type: vendor.service_type,
+                },
+          )
         : table === "participants"
           ? [...participants].reverse()
           : joined().reverse();
@@ -186,17 +250,22 @@ export async function mockWedding(page: Page) {
               response: {
                 postgres_changes: [
                   {
-                    id: 42,
+                    id: topic === "realtime:wedding-events" ? 43 : 42,
                     event: "*",
                     schema: "public",
-                    table: "appointments",
+                    table:
+                      topic === "realtime:wedding-events"
+                        ? "wedding_events"
+                        : "appointments",
                   },
                 ],
               },
             },
           ]),
         );
-        state.subscriptionReady = true;
+        if (topic === "realtime:wedding-events")
+          state.eventsSubscriptionReady = true;
+        else state.subscriptionReady = true;
       }
       if (event === "heartbeat")
         socket.send(

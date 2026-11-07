@@ -906,10 +906,33 @@ bdi {
 .photo-event {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 9px;
   padding: 13px 0;
   font-size: 12px;
   color: #7e7062;
+}
+.photo-event > span:not(.photo-dot) {
+  flex: 1;
+  min-width: 90px;
+}
+.photo-event .text-button {
+  flex-shrink: 0;
+}
+.photography .section-title .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.event-form {
+  margin-top: 20px;
+}
+.event-form fieldset {
+  display: grid;
+  gap: 14px;
+}
+.event-form input[type="time"] {
+  direction: ltr;
 }
 .photo-event + .photo-event {
   border-top: 1px solid #e1ded4;

@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Camera, Clock3, Users } from "lucide-react";
 import type { Appointment, Participant } from "../types/database";
-import { photography, serviceLabels } from "../config/wedding";
+import { serviceLabels, type PhotographyEvent } from "../config/wedding";
 import { Photography } from "../components/schedule/Photography";
 import {
   EmptyState,
   ServiceIcon,
   ServiceApprovalNote,
+  Notice,
 } from "../components/ui/Primitives";
 import { displayTime, hasTimes, toMinutes } from "../utils/time";
 import { sortAppointments } from "../utils/scheduling";
+
+const WeddingEventSheet = lazy(() =>
+  import("../components/schedule/WeddingEventSheet").then((module) => ({
+    default: module.WeddingEventSheet,
+  })),
+);
 
 interface Props {
   appointments: Appointment[];
@@ -17,6 +24,10 @@ interface Props {
   selectedVendor?: string;
   onEdit: (a: Appointment) => void;
   manager: boolean;
+  events: PhotographyEvent[];
+  eventsAvailable: boolean;
+  eventsError: string | null;
+  onEventSaved: (event: PhotographyEvent) => void;
 }
 export function SharedSchedulePage({
   appointments,
@@ -24,9 +35,19 @@ export function SharedSchedulePage({
   selectedVendor,
   onEdit,
   manager,
+  events,
+  eventsAvailable,
+  eventsError,
+  onEventSaved,
 }: Props) {
   const [view, setView] = useState<"participants" | "time">("participants");
   const [filter, setFilter] = useState("all");
+  const [editingEvent, setEditingEvent] = useState<
+    PhotographyEvent | null | undefined
+  >(undefined);
+  const editEvent = (event: PhotographyEvent | null) => {
+    if (manager && eventsAvailable) setEditingEvent(event);
+  };
   const filtered = appointments.filter(
     (a) => filter === "all" || a.participant_id === filter,
   );
@@ -39,7 +60,7 @@ export function SharedSchedulePage({
       event: null,
       boundary: null,
     })),
-    ...photography.map((event) => ({
+    ...events.map((event) => ({
       key: `photo-${event.id}`,
       time: event.start,
       appointment: null,
@@ -195,6 +216,16 @@ export function SharedSchedulePage({
         </div>
       ) : (
         <section className="agenda">
+          {manager && (
+            <button
+              className="text-button"
+              disabled={!eventsAvailable}
+              onClick={() => editEvent(null)}
+            >
+              הוספת אירוע
+            </button>
+          )}
+          {eventsError && <Notice>{eventsError}</Notice>}
           {timeline.map((item) => {
             if (item.boundary)
               return (
@@ -249,13 +280,22 @@ export function SharedSchedulePage({
                       <p>
                         {item.event!.end ? (
                           <>
-                            עד <bdi>{item.event!.end}</bdi> ·{" "}
+                            עד <bdi>{displayTime(item.event!.end)}</bdi> ·{" "}
                           </>
                         ) : (
                           ""
                         )}
-                        אירוע קבוע
+                        אירוע בלו״ז
                       </p>
+                      {manager && eventsAvailable && (
+                        <button
+                          className="text-button"
+                          onClick={() => editEvent(item.event!)}
+                          aria-label={`עריכת אירוע ${item.event!.title}`}
+                        >
+                          עריכה
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
@@ -285,7 +325,29 @@ export function SharedSchedulePage({
         </section>
       )}
       {!participants.length && <EmptyState title="רשימת המתארגנות ריקה" />}
-      {view === "participants" && <Photography />}
+      {view === "participants" && (
+        <Photography
+          events={events}
+          manager={manager}
+          available={eventsAvailable}
+          error={eventsError}
+          onEdit={editEvent}
+          onAdd={() => editEvent(null)}
+        />
+      )}
+      {editingEvent !== undefined && (
+        <Suspense fallback={<p role="status">פותחות את האירוע…</p>}>
+          <WeddingEventSheet
+            key={editingEvent?.id ?? "new-event"}
+            event={editingEvent}
+            onClose={() => setEditingEvent(undefined)}
+            onSaved={(event) => {
+              onEventSaved(event);
+              setEditingEvent(undefined);
+            }}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

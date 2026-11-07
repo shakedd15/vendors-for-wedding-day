@@ -1,16 +1,21 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { ArrowLeft, CalendarDays, Heart, RefreshCw, Users } from "lucide-react";
 import type { Vendor } from "../types/database";
 import type { Identity } from "../types/scheduling";
 import { vendorLabels } from "../config/wedding";
 import { familyAccess } from "../config/access";
-import { FamilyAccessDialog } from "../components/ui/FamilyAccessDialog";
 import {
   EmptyState,
   Notice,
   ServiceIcon,
   Wordmark,
 } from "../components/ui/Primitives";
+
+const FamilyAccessDialog = lazy(() =>
+  import("../components/ui/FamilyAccessDialog").then((module) => ({
+    default: module.FamilyAccessDialog,
+  })),
+);
 
 export function WelcomePage({
   vendors,
@@ -130,13 +135,15 @@ export function WelcomePage({
         </footer>
       </main>
       {familyDialogOpen && (
-        <FamilyAccessDialog
-          onClose={() => setFamilyDialogOpen(false)}
-          onEnter={() => {
-            setFamilyDialogOpen(false);
-            onSelect({ kind: "manager" });
-          }}
-        />
+        <Suspense fallback={<p role="status">פותחות את חלון הכניסה…</p>}>
+          <FamilyAccessDialog
+            onClose={() => setFamilyDialogOpen(false)}
+            onEnter={() => {
+              setFamilyDialogOpen(false);
+              onSelect({ kind: "manager" });
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

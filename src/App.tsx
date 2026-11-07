@@ -10,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useWeddingData } from "./hooks/useWeddingData";
+import { useWeddingEvents } from "./hooks/useWeddingEvents";
 import { usePreferences } from "./hooks/usePreferences";
 import { configError } from "./lib/supabase";
 import { familyAccess } from "./config/access";
@@ -24,6 +25,7 @@ import type { Identity, Screen } from "./types/scheduling";
 
 export default function App() {
   const data = useWeddingData();
+  const eventData = useWeddingEvents();
   const prefs = usePreferences();
   const [screen, setScreen] = useState<Screen>(
     prefs.identity?.kind === "manager" ? "shared" : "mine",
@@ -126,9 +128,10 @@ export default function App() {
           <button
             onClick={() => {
               void data.refresh();
+              void eventData.refresh();
             }}
             className="refresh-button"
-            disabled={data.refreshing}
+            disabled={data.refreshing || eventData.refreshing}
             aria-label="רענון הלו״ז"
           >
             <RefreshCw size={14} className={data.refreshing ? "spin" : ""} />
@@ -167,6 +170,14 @@ export default function App() {
                 selectedVendor={selectedId}
                 manager={manager}
                 onEdit={openBooking}
+                events={eventData.events}
+                eventsAvailable={eventData.available}
+                eventsError={eventData.error}
+                onEventSaved={(event) => {
+                  eventData.acceptEvent(event);
+                  void eventData.refresh();
+                  setSuccess("האירוע נשמר");
+                }}
               />
             )}
             {screen === "management" && manager && (

@@ -1,6 +1,127 @@
 import { expect, test } from "@playwright/test";
 import { enterFamily, mockWedding, vendors } from "./fixtures";
 
+test("family can edit existing wedding moments, add a point event and see saved changes in both views", async ({
+  page,
+}) => {
+  await mockWedding(page);
+  await page.goto("/");
+  await enterFamily(page);
+  await expect(
+    page.getByRole("button", { name: "עריכת אירוע צילומי כלה", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "עריכת אירוע צילומי כלה", exact: true })
+    .click();
+  await page.getByLabel("שם האירוע", { exact: true }).fill("צילומי כלה ומשפחה");
+  await page.getByLabel("שעת התחלה של האירוע", { exact: true }).fill("14:35");
+  await page.getByLabel("שעת סיום של האירוע", { exact: true }).fill("15:05");
+  await page.getByRole("button", { name: "שמירת האירוע" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator(".photo-events")).toContainText(
+    "צילומי כלה ומשפחה",
+  );
+  await page.getByRole("button", { name: "הוספת אירוע", exact: true }).click();
+  await page.getByLabel("שם האירוע", { exact: true }).fill("יציאה לאולם");
+  await page.getByLabel("שעת התחלה של האירוע", { exact: true }).fill("17:30");
+  await page.getByRole("button", { name: "שמירת האירוע" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.reload();
+  await enterFamily(page);
+  await expect(page.locator(".photo-events")).toContainText("יציאה לאולם");
+  await page.getByRole("button", { name: "לפי שעות", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "צילומי כלה ומשפחה", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "יציאה לאולם", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "החלפת משתמשת" }).click();
+  await page.getByRole("button", { name: /חן שקד/ }).click();
+  await page.getByRole("button", { name: "לו״ז משותף", exact: true }).click();
+  await expect(page.locator(".photo-events")).toContainText(
+    "צילומי כלה ומשפחה",
+  );
+  await expect(page.getByRole("button", { name: /^עריכת אירוע/ })).toHaveCount(
+    0,
+  );
+});
+
+test("missing wedding-events table keeps the existing timeline readable without fake saves", async ({
+  page,
+}) => {
+  const state = await mockWedding(page);
+  state.eventsAvailable = false;
+  await page.goto("/");
+  await enterFamily(page);
+  await expect(page.locator(".photo-events")).toContainText("צילומי כלה");
+  await expect(
+    page.getByRole("button", { name: "הוספת אירוע", exact: true }),
+  ).toBeDisabled();
+  await expect(page.getByRole("button", { name: /^עריכת אירוע/ })).toHaveCount(
+    0,
+  );
+});
+
+test("concurrent wedding-event edits preserve the draft instead of overwriting saved changes", async ({
+  page,
+}) => {
+  const state = await mockWedding(page);
+  await page.goto("/");
+  await enterFamily(page);
+  await page
+    .getByRole("button", { name: "עריכת אירוע צילומי כלה", exact: true })
+    .click();
+  await page.getByLabel("שם האירוע", { exact: true }).fill("טיוטה מקומית");
+  state.weddingEvents[0]!.title = "עדכון ממכשיר אחר";
+  await page.getByRole("button", { name: "שמירת האירוע" }).click();
+  await expect(page.getByRole("alert")).toContainText("האירוע השתנה");
+  await expect(page.getByLabel("שם האירוע", { exact: true })).toHaveValue(
+    "טיוטה מקומית",
+  );
+  expect(state.weddingEvents[0]!.title).toBe("עדכון ממכשיר אחר");
+});
+
+test("wedding-event realtime changes update the shared timeline", async ({
+  page,
+}) => {
+  const state = await mockWedding(page);
+  await page.goto("/");
+  await enterFamily(page);
+  await expect.poll(() => state.eventsSubscriptionReady).toBe(true);
+  await expect(
+    page.getByRole("button", { name: "הוספת אירוע", exact: true }),
+  ).toBeEnabled();
+  const row = state.weddingEvents[0]!;
+  row.title = "צילומי כלה מעודכנים";
+  row.start_time = "14:40:00";
+  for (const socket of state.sockets)
+    socket.send(
+      JSON.stringify([
+        null,
+        null,
+        "realtime:wedding-events",
+        "postgres_changes",
+        {
+          ids: [43],
+          data: {
+            schema: "public",
+            table: "wedding_events",
+            type: "UPDATE",
+            commit_timestamp: new Date().toISOString(),
+            columns: [],
+            record: row,
+            old_record: {},
+          },
+        },
+      ]),
+    );
+  await expect(page.locator(".photo-events")).toContainText(
+    "צילומי כלה מעודכנים",
+  );
+  await expect(page.locator(".photo-events")).toContainText("14:40");
+});
+
 test("back stays in the viewport when scrolling vendor and shared schedules", async ({
   page,
 }) => {
