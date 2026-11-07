@@ -44,13 +44,9 @@ export function BookingSheet({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
-  const slots = useMemo(
+  const visibleSlots = useMemo(
     () => availableSlots(a, all, Number(duration), buffer),
     [a, all, duration, buffer],
-  );
-  const visibleSlots = slots.filter(
-    (time) =>
-      toMinutes(time)! >= 540 && toMinutes(time)! + Number(duration) <= 1080,
   );
   const startMinutes = toMinutes(start);
   const endMinutes =

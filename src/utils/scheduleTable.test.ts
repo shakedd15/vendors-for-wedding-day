@@ -49,6 +49,8 @@ it("keeps exact five-minute appointments ordered within an hour and leaves unsch
 });
 it("includes preparation hours and extends to include existing out-of-window records without inventing times", () => {
   expect(scheduleTableHours([])).toEqual([
+    { start: 420, end: 480 },
+    { start: 480, end: 540 },
     { start: 540, end: 600 },
     { start: 600, end: 660 },
     { start: 660, end: 720 },
@@ -58,10 +60,11 @@ it("includes preparation hours and extends to include existing out-of-window rec
     { start: 900, end: 960 },
     { start: 960, end: 1020 },
     { start: 1020, end: 1080 },
+    { start: 1080, end: 1110 },
   ]);
   const hours = scheduleTableHours([
-    { ...appointment, start_time: "08:35", end_time: "18:05" },
+    { ...appointment, start_time: "06:35", end_time: "18:45" },
   ]);
-  expect(hours[0]).toEqual({ start: 480, end: 540 });
-  expect(hours.at(-1)).toEqual({ start: 1080, end: 1140 });
+  expect(hours[0]).toEqual({ start: 360, end: 420 });
+  expect(hours.at(-1)).toEqual({ start: 1080, end: 1125 });
 });

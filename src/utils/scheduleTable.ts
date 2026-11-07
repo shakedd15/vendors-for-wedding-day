@@ -18,16 +18,13 @@ export function scheduleTableHours(
         ...timed.map((a) => toMinutes(a.start_time)!),
       ) / 60,
     ) * 60;
-  const end =
-    Math.ceil(
-      Math.max(
-        toMinutes(wedding.end)!,
-        ...timed.map((a) => toMinutes(a.end_time)!),
-      ) / 60,
-    ) * 60;
-  return Array.from({ length: (end - start) / 60 }, (_, index) => ({
+  const end = Math.max(
+    toMinutes(wedding.end)!,
+    ...timed.map((a) => toMinutes(a.end_time)!),
+  );
+  return Array.from({ length: Math.ceil((end - start) / 60) }, (_, index) => ({
     start: start + index * 60,
-    end: start + (index + 1) * 60,
+    end: Math.min(start + (index + 1) * 60, end),
   }));
 }
 export function appointmentsInHour(

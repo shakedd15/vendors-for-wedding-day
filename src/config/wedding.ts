@@ -3,8 +3,8 @@ export const wedding = {
   date: "2026-11-10",
   bride: "שקד",
   readyBy: "14:15",
-  start: "09:00",
-  end: "18:00",
+  start: "07:00",
+  end: "18:30",
   slotMinutes: 5,
   defaultBuffer: 15,
 } as const;

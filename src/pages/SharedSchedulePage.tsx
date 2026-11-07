@@ -1,7 +1,11 @@
 import { lazy, Suspense, useState } from "react";
 import { Camera, Clock3, Table2, Users } from "lucide-react";
 import type { Appointment, Participant, Vendor } from "../types/database";
-import { serviceLabels, type PhotographyEvent } from "../config/wedding";
+import {
+  serviceLabels,
+  wedding,
+  type PhotographyEvent,
+} from "../config/wedding";
 import { Photography } from "../components/schedule/Photography";
 import {
   EmptyState,
@@ -78,14 +82,14 @@ export function SharedSchedulePage({
     })),
     {
       key: "day-start",
-      time: "09:00",
+      time: wedding.start,
       appointment: null,
       event: null,
       boundary: "מתחילות להתארגן",
     },
     {
       key: "day-end",
-      time: "18:00",
+      time: wedding.end,
       appointment: null,
       event: null,
       boundary: "סיום ההתארגנות",

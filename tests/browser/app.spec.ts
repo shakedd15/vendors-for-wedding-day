@@ -1,6 +1,44 @@
 import { expect, test } from "@playwright/test";
 import { enterFamily, mockWedding, vendors } from "./fixtures";
 
+test("preparation scheduling and shared views cover 07:00 to 18:30", async ({
+  page,
+}) => {
+  await mockWedding(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: /איילת שילוני/ }).click();
+  await page
+    .getByRole("button", { name: "קביעת שעה עבור אגם", exact: true })
+    .click();
+  await page.getByLabel("משך הטיפול").fill("30");
+  const start = page.getByRole("combobox", { name: "שעת התחלה", exact: true });
+  await expect(start).toBeEnabled();
+  await expect(start.locator('option[value="06:55"]')).toHaveCount(0);
+  await expect(start.locator('option[value="18:05"]')).toHaveCount(0);
+  await start.selectOption("07:00");
+  await expect(page.locator(".calculated-end")).toContainText("07:30");
+  await page.getByRole("button", { name: "שמירת השיבוץ" }).click();
+  await page
+    .getByRole("button", { name: "עריכת שעה עבור אגם", exact: true })
+    .click();
+  await start.selectOption("18:00");
+  await expect(page.locator(".calculated-end")).toContainText("18:30");
+  await page.getByRole("button", { name: "שמירת השיבוץ" }).click();
+  await page.getByRole("button", { name: "החלפת משתמשת" }).click();
+  await enterFamily(page);
+  await page.getByRole("button", { name: "לפי שעות", exact: true }).click();
+  await expect(page.locator(".agenda-boundary").first()).toContainText("07:00");
+  await expect(page.locator(".agenda-boundary").last()).toContainText("18:30");
+  await page.getByRole("button", { name: "טבלה", exact: true }).click();
+  const table = page.getByRole("table", { name: "לו״ז לפי שעות וספקיות" });
+  await expect(
+    table.getByRole("rowheader", { name: "07:00–08:00", exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    table.getByRole("rowheader", { name: "18:00–18:30", exact: true }),
+  ).toHaveCount(1);
+});
+
 test("wide table asks for phone rotation and fits all columns in landscape without sideways scrolling", async ({
   page,
 }) => {

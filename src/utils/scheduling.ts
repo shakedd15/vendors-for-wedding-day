@@ -97,7 +97,7 @@ export function validateBooking(
   }
   if (start < toMinutes(wedding.start)! || end > toMinutes(wedding.end)!)
     warnings.push(
-      "השיבוץ מחוץ לשעות ההתארגנות 09:00–18:00. כדאי לתאם עם כולם.",
+      `השיבוץ מחוץ לשעות ההתארגנות ${wedding.start}–${wedding.end}. כדאי לתאם עם כולם.`,
     );
   return { errors: [...new Set(errors)], warnings };
 }
@@ -115,10 +115,11 @@ export function availableSlots(
   )
     return [];
   const result: string[] = [];
-  // Generate same-day candidates; the booking form limits these to preparation hours.
+  const windowStart = toMinutes(wedding.start)!;
+  const windowEnd = toMinutes(wedding.end)!;
   for (
-    let start = 0;
-    start + duration < 24 * 60;
+    let start = windowStart;
+    start + duration <= windowEnd;
     start += wedding.slotMinutes
   ) {
     const draft: BookingDraft = {

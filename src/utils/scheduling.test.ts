@@ -194,7 +194,7 @@ describe("booking validation", () => {
     };
     const result = validateBooking(
       morning,
-      { ...draft, start_time: "08:00", end_time: "09:00" },
+      { ...draft, start_time: "06:30", end_time: "07:00" },
       [],
       15,
       false,
@@ -204,6 +204,24 @@ describe("booking validation", () => {
   });
 });
 describe("availability", () => {
+  it("offers bookings from 07:00 through a final finish at 18:30 without overriding personal deadlines", () => {
+    const morning = {
+      ...base,
+      participant: {
+        ...base.participant,
+        name: "אגם",
+        arrival_time: null,
+        ready_by: null,
+      },
+    };
+    const slots = availableSlots(morning, [], 30, 15);
+    expect(slots[0]).toBe("07:00");
+    expect(slots).toContain("07:05");
+    expect(slots.at(-1)).toBe("18:00");
+    expect(slots).not.toContain("06:55");
+    expect(slots).not.toContain("18:05");
+    expect(availableSlots(base, [], 30, 15).at(-1)).toBe("17:30");
+  });
   it("offers five-minute slots while excluding overlaps and respecting consecutive endpoints", () => {
     const other = {
       ...base,
