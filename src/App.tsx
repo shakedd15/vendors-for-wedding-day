@@ -154,6 +154,10 @@ export default function App() {
                 vendor={vendor}
                 appointments={data.appointments}
                 onEdit={openBooking}
+                onVendorSaved={(updated) => {
+                  data.acceptVendorUpdate(updated);
+                  void data.refresh();
+                }}
               />
             )}
             {screen === "shared" && (

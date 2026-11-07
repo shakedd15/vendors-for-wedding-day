@@ -70,6 +70,26 @@ describe("time boundaries", () => {
   });
 });
 describe("booking validation", () => {
+  it("accepts start times and durations in five-minute increments", () => {
+    expect(
+      validateBooking(
+        base,
+        { ...draft, start_time: "13:35", end_time: "14:10" },
+        [],
+        15,
+        false,
+      ).errors,
+    ).toEqual([]);
+    expect(
+      validateBooking(
+        base,
+        { ...draft, start_time: "13:40", end_time: "13:45" },
+        [],
+        15,
+        false,
+      ).errors,
+    ).toEqual([]);
+  });
   it("accepts arrival and deadline equality", () =>
     expect(
       validateBooking(base, { ...draft, end_time: "18:00" }, [], 15, false)
@@ -141,7 +161,7 @@ describe("booking validation", () => {
         .errors,
     ).toHaveLength(1);
   });
-  it("requires complete, positive, quarter-hour intervals", () => {
+  it("requires complete, positive, five-minute intervals", () => {
     for (const end_time of [null, "13:30", "13:15", "13:47"])
       expect(
         validateBooking(base, { ...draft, end_time }, [], 15, false).errors
@@ -184,6 +204,24 @@ describe("booking validation", () => {
   });
 });
 describe("availability", () => {
+  it("offers five-minute slots while excluding overlaps and respecting consecutive endpoints", () => {
+    const other = {
+      ...base,
+      id: "b",
+      participant_id: "other",
+      start_time: "13:50",
+      end_time: "14:15",
+      status: "proposed" as const,
+    };
+    const slots = availableSlots(base, [other], 10, 15);
+    expect(slots).toContain("13:35");
+    expect(slots).toContain("13:40");
+    expect(slots).not.toContain("13:45");
+    expect(slots).not.toContain("14:10");
+    expect(slots).toContain("14:15");
+    expect(slots).toContain("17:50");
+    expect(slots).not.toContain("17:55");
+  });
   it("returns only times that fit selected duration, arrival, other proposed booking and deadline", () => {
     const other = {
       ...base,
@@ -201,8 +239,8 @@ describe("availability", () => {
     expect(slots).toContain("17:15");
     expect(slots).not.toContain("17:30");
   });
-  it("requires a deliberate positive quarter-hour duration", () => {
-    for (const duration of [0, 10, -15, NaN])
+  it("requires a deliberate positive five-minute duration", () => {
+    for (const duration of [0, 7, -5, NaN])
       expect(availableSlots(base, [], duration, 15)).toEqual([]);
   });
 });

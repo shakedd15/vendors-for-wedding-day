@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Clock3, LoaderCircle, MapPin, Trash2, X } from "lucide-react";
 import type { Appointment } from "../../types/database";
 import type { BookingDraft } from "../../types/scheduling";
-import { serviceLabels } from "../../config/wedding";
+import { serviceLabels, wedding } from "../../config/wedding";
 import {
   availableSlots,
   buildBookingDraft,
@@ -185,9 +185,9 @@ export function BookingSheet({
                   id="booking-duration"
                   type="number"
                   inputMode="numeric"
-                  min="15"
-                  max="1425"
-                  step="15"
+                  min={wedding.slotMinutes}
+                  max={24 * 60 - wedding.slotMinutes}
+                  step={wedding.slotMinutes}
                   placeholder="כמה דקות?"
                   value={duration}
                   onChange={(e) => {
@@ -219,7 +219,8 @@ export function BookingSheet({
               </label>
             </div>
             <p className="field-help">
-              משך ושעות בקפיצות של 15 דקות. מוצגות שעות פנויות בלבד.
+              משך ושעות בקפיצות של {wedding.slotMinutes} דקות. מוצגות שעות
+              פנויות בלבד.
             </p>
             {!!duration && !visibleSlots.length && (
               <Notice kind="warning">

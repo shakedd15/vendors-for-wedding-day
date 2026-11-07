@@ -1,7 +1,12 @@
 export type ServiceType = "makeup" | "hair";
 export type AppointmentStatus =
   "unscheduled" | "proposed" | "confirmed" | "pending_confirmation";
-export type Vendor = { id: string; name: string; service_type: ServiceType };
+export type Vendor = {
+  id: string;
+  name: string;
+  service_type: ServiceType;
+  additional_details?: string | null;
+};
 export type Participant = {
   id: string;
   name: string;
@@ -25,7 +30,9 @@ type Table<Row> = { Row: Row; Insert: never; Update: never; Relationships: [] };
 export interface Database {
   public: {
     Tables: {
-      vendors: Table<Vendor>;
+      vendors: Omit<Table<Vendor>, "Update"> & {
+        Update: { additional_details?: string | null };
+      };
       participants: Table<Participant>;
       appointments: Omit<Table<AppointmentRow>, "Update" | "Relationships"> & {
         Update: Partial<

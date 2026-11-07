@@ -47,10 +47,12 @@ export function validateBooking(
     start === null ||
     end === null ||
     end <= start ||
-    start % 15 !== 0 ||
-    end % 15 !== 0
+    start % wedding.slotMinutes !== 0 ||
+    end % wedding.slotMinutes !== 0
   ) {
-    errors.push("בחרי שעת התחלה ומשך חיובי בקפיצות של 15 דקות, בתוך אותו יום.");
+    errors.push(
+      `בחרי שעת התחלה ומשך חיובי בקפיצות של ${wedding.slotMinutes} דקות, בתוך אותו יום.`,
+    );
     return { errors, warnings };
   }
   if (draft.status === "unscheduled")
@@ -106,11 +108,19 @@ export function availableSlots(
   duration: number,
   buffer: number,
 ): string[] {
-  if (!Number.isFinite(duration) || duration <= 0 || duration % 15 !== 0)
+  if (
+    !Number.isFinite(duration) ||
+    duration <= 0 ||
+    duration % wedding.slotMinutes !== 0
+  )
     return [];
   const result: string[] = [];
-  // Offer the entire day; preparation-window exceptions remain visible as warnings.
-  for (let start = 0; start + duration < 24 * 60; start += 15) {
+  // Generate same-day candidates; the booking form limits these to preparation hours.
+  for (
+    let start = 0;
+    start + duration < 24 * 60;
+    start += wedding.slotMinutes
+  ) {
     const draft: BookingDraft = {
       start_time: fromMinutes(start),
       end_time: fromMinutes(start + duration),

@@ -28,7 +28,8 @@ body {
 }
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 button,
@@ -58,12 +59,14 @@ summary:focus-visible {
   outline-offset: 4px;
 }
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+textarea:focus-visible {
   outline: 2px solid var(--rose);
   outline-offset: 2px;
 }
 input,
-select {
+select,
+textarea {
   color: #37332f;
   background: white;
   width: 100%;
@@ -73,7 +76,8 @@ select {
   font-size: 16px;
   min-width: 0;
 }
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: #8e857c;
 }
 label {
@@ -433,6 +437,10 @@ bdi {
   padding: 0 20px calc(98px + env(safe-area-inset-bottom));
 }
 .schedule-actions {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 15;
+  background: #f8f6f2;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -672,6 +680,30 @@ bdi {
   color: #9b8b7d;
   font-size: 11px;
   padding: 24px 0 0;
+}
+.vendor-details {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: white;
+}
+.vendor-details h2 {
+  margin-bottom: 12px;
+}
+.vendor-details textarea {
+  display: block;
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.8;
+}
+.vendor-details .button {
+  margin-top: 12px;
+}
+.details-saved {
+  margin-top: 9px;
+  color: #53725b;
+  font-size: 12px;
 }
 .bottom-nav {
   position: fixed;

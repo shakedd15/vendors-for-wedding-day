@@ -39,7 +39,10 @@ export function usePreferences() {
   const [buffer, setBuffer] = useState(() => {
     const saved = read("wedding.buffer");
     const n = saved === null ? wedding.defaultBuffer : Number(saved);
-    return Number.isInteger(n) && n >= 0 && n <= 120 && n % 15 === 0
+    return Number.isInteger(n) &&
+      n >= 0 &&
+      n <= 120 &&
+      n % wedding.slotMinutes === 0
       ? n
       : wedding.defaultBuffer;
   });

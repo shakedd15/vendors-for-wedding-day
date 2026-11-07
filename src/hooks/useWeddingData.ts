@@ -116,6 +116,20 @@ export function useWeddingData() {
       ),
     }));
   }, []);
+  const acceptVendorUpdate = useCallback((vendor: Vendor) => {
+    dataRevision.current += 1;
+    setData((previous) => ({
+      ...previous,
+      vendors: previous.vendors.map((current) =>
+        current.id === vendor.id ? vendor : current,
+      ),
+      appointments: previous.appointments.map((appointment) =>
+        appointment.vendor_id === vendor.id
+          ? { ...appointment, vendor }
+          : appointment,
+      ),
+    }));
+  }, []);
   return {
     ...data,
     loading,
@@ -124,5 +138,6 @@ export function useWeddingData() {
     connection,
     refresh,
     acceptUpdate,
+    acceptVendorUpdate,
   };
 }

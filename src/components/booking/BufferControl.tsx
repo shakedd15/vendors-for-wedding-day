@@ -1,3 +1,4 @@
+import { wedding } from "../../config/wedding";
 import { displayTime, fromMinutes, toMinutes } from "../../utils/time";
 export function BufferControl({
   buffer,
@@ -15,7 +16,10 @@ export function BufferControl({
           value={buffer}
           onChange={(e) => onChange(Number(e.target.value))}
         >
-          {[0, 15, 30, 45, 60, 75, 90, 105, 120].map((value) => (
+          {Array.from(
+            { length: 120 / wedding.slotMinutes + 1 },
+            (_, index) => index * wedding.slotMinutes,
+          ).map((value) => (
             <option key={value} value={value}>
               {value} דקות
             </option>

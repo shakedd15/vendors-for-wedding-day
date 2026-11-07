@@ -1,6 +1,7 @@
 import { CalendarCheck2, Heart } from "lucide-react";
 import type { Appointment, Vendor } from "../types/database";
 import { AppointmentCard } from "../components/schedule/AppointmentCard";
+import { VendorDetails } from "../components/schedule/VendorDetails";
 import { EmptyState, ServiceLabel } from "../components/ui/Primitives";
 import { sortAppointments } from "../utils/scheduling";
 import { hasTimes } from "../utils/time";
@@ -9,10 +10,12 @@ export function MySchedulePage({
   vendor,
   appointments,
   onEdit,
+  onVendorSaved,
 }: {
   vendor: Vendor;
   appointments: Appointment[];
   onEdit: (a: Appointment) => void;
+  onVendorSaved: (vendor: Vendor) => void;
 }) {
   const mine = sortAppointments(
     appointments.filter((a) => a.vendor_id === vendor.id),
@@ -63,6 +66,7 @@ export function MySchedulePage({
           </EmptyState>
         )}
       </section>
+      <VendorDetails key={vendor.id} vendor={vendor} onSaved={onVendorSaved} />
       <p className="gentle-note">
         <Heart size={13} aria-hidden="true" />
         כל שינוי קטן אצלך, עוזר לכולנו לתכנן.

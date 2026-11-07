@@ -5,6 +5,7 @@ export const wedding = {
   readyBy: "14:15",
   start: "09:00",
   end: "18:00",
+  slotMinutes: 5,
   defaultBuffer: 15,
 } as const;
 export const serviceLabels: Record<ServiceType, string> = {

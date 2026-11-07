@@ -63,6 +63,12 @@ export function fixtureRows(): AppointmentRow[] {
 export async function mockWedding(page: Page) {
   const state = {
     rows: fixtureRows(),
+    vendors: vendors.map((vendor) => ({
+      ...vendor,
+      additional_details: null as string | null,
+    })),
+    detailsColumnAvailable: true,
+    failDetailsSave: false,
     failSave: false,
     failReads: false,
     stale: false,
@@ -76,7 +82,7 @@ export async function mockWedding(page: Page) {
     state.rows.map((row) => ({
       ...row,
       participant: participants.find((p) => p.id === row.participant_id)!,
-      vendor: vendors.find((v) => v.id === row.vendor_id)!,
+      vendor: state.vendors.find((v) => v.id === row.vendor_id)!,
     }));
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
@@ -86,6 +92,29 @@ export async function mockWedding(page: Page) {
       return route.fulfill({ status: 503, json: { message: "unavailable" } });
     const table = url.pathname.split("/").pop();
     if (route.request().method() === "PATCH") {
+      if (table === "vendors") {
+        const body = route.request().postDataJSON() as {
+          additional_details: string | null;
+        };
+        expect(Object.keys(body)).toEqual(["additional_details"]);
+        if (state.failDetailsSave)
+          return route.fulfill({
+            status: 403,
+            json: { code: "42501", message: "permission denied" },
+          });
+        const vendor = state.vendors.find(
+          (v) => `eq.${v.id}` === url.searchParams.get("id"),
+        );
+        expect(vendor).toBeTruthy();
+        const expected =
+          vendor!.additional_details === null
+            ? "is.null"
+            : `eq.${vendor!.additional_details}`;
+        if (url.searchParams.get("additional_details") !== expected)
+          return route.fulfill({ json: null });
+        vendor!.additional_details = body.additional_details;
+        return route.fulfill({ json: vendor });
+      }
       if (state.failSave)
         return route.fulfill({
           status: 409,
@@ -111,7 +140,17 @@ export async function mockWedding(page: Page) {
     }
     const response =
       table === "vendors"
-        ? [...vendors].reverse()
+        ? [...state.vendors]
+            .reverse()
+            .map((vendor) =>
+              state.detailsColumnAvailable
+                ? vendor
+                : {
+                    id: vendor.id,
+                    name: vendor.name,
+                    service_type: vendor.service_type,
+                  },
+            )
         : table === "participants"
           ? [...participants].reverse()
           : joined().reverse();

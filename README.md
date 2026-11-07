@@ -29,19 +29,27 @@ Use only a Supabase publishable key (`sb_publishable_…`) or the legacy public 
 
 ## Existing data
 
-The application only reads `vendors`, `participants` and relational `appointments`, and updates `appointments.start_time`, `end_time` and `status`. It performs no inserts, deletes, migrations, seed operations, or changes to assignments. It uses IDs returned by the database and does not assume row ordering. Missing service records display as “לא נדרש”.
+The application reads `vendors`, `participants` and relational `appointments`. It updates appointment times/status and, after the owner enables the optional details field described below, `vendors.additional_details` only. It performs no inserts, deletes, automatic migrations, seed operations, or changes to assignments. It uses IDs returned by the database and does not assume row ordering. Missing service records display as “לא נדרש”.
+
+## Vendor additional details
+
+Each vendor's “הלו״ז שלי” page includes an editable “פירוט נוסף” textarea and an explicit save button. Text is stored per vendor in `public.vendors.additional_details` (`text`, nullable), so it survives page reloads, switching identities and use on another device. Clearing the text and saving removes the details. Notes are never stored in localStorage.
+
+The existing database does not have this field and its anonymous policies previously allowed no vendor updates. **Owner action is required:** review and run [vendor-additional-details.sql](docs/vendor-additional-details.sql) in the existing project's Supabase SQL Editor. This manual script adds only the nullable field, grants anonymous updates to that field, adds the UPDATE RLS policy, and preserves the existing read policies. It does not modify appointments, participant records, names or vendor service types. It runs as a transaction and stops if inherited grants still permit changing other vendor fields. No SQL is executed by the app or by the development checks.
+
+Until the column is available, the notes editor is disabled and scheduling continues normally. A missing update permission produces a friendly save error without losing the draft. Notes load on entry, manual refresh, focus and the existing visible-tab polling interval. An acknowledged save updates local state immediately; competing changes use a comparison with the previous saved text to prevent silent overwrites. Unsaved local edits are kept when background refreshes arrive. Saving notes requires the same anonymous database access model as the existing scheduling functionality.
 
 Vendor identity selection is a local display preference. The “משפחה וחברות” card opens the shared schedule and management view after entering the local plaintext password `111`, configured in `src/config/access.ts`. The password is checked only in the frontend and is never stored in or sent to Supabase. Family access is unlocked only in memory; a reload or return to name selection requires the password again, including for previously saved management identities. This is a simple frontend entry gate, not database authentication or role authorization. Existing anonymous RLS permissions remain unchanged. Vendors can edit their assigned appointments; family management retains editing of all existing appointments and explicit approval of pending services.
 
 Only identity and the bride planning buffer are stored in localStorage. Appointment records remain in Supabase. Blocked localStorage is supported, but preferences then reset on reload.
 
-Every schedule screen includes a Hebrew back button. It returns through screens visited in the current session, then to name selection. Selecting another identity starts fresh navigation; after reloading, back returns to name selection. Navigation stays inside the static app and does not require server route rewrites.
+Every schedule screen includes a Hebrew back button that stays visible at the top while scrolling. It returns through screens visited in the current session, then to name selection. Selecting another identity starts fresh navigation; after reloading, back returns to name selection. Navigation stays inside the static app and does not require server route rewrites.
 
 Both shared and management schedules filter by participant names from the existing `participants` records. The family entry card uses the same card layout as the vendors. The repeated bride deadline banner and the separate bride-planning section are not displayed in the family view; deadline validation and the bride's booking-sheet buffer remain in place.
 
 ## Scheduling behavior
 
-- Select a duration deliberately in 15-minute steps, then choose an available start time. Existing durations are preserved when editing.
+- Select a duration deliberately in 5-minute steps, then choose an available start time in 5-minute steps. Existing durations are preserved when editing.
 - There is no manual booking-status selector, status badge, or proposed/confirmed dashboard breakdown. Saving a regular appointment records its time directly; the existing database status field is maintained internally without changing the schema or rewriting untouched records.
 - Proposed, confirmed and timed pending services all reserve their interval. Endpoints are exclusive, so consecutive appointments are allowed.
 - The app checks both participant and vendor overlap, actual arrival times, participant deadlines and Shaked's hard 14:15 deadline.

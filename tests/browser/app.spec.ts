@@ -1,6 +1,122 @@
 import { expect, test } from "@playwright/test";
 import { enterFamily, mockWedding, vendors } from "./fixtures";
 
+test("back stays in the viewport when scrolling vendor and shared schedules", async ({
+  page,
+}) => {
+  await mockWedding(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: /חן שקד/ }).click();
+  const back = page.getByRole("button", { name: "חזרה", exact: true });
+  for (const shared of [false, true]) {
+    if (shared)
+      await page
+        .getByRole("button", { name: "לו״ז משותף", exact: true })
+        .click();
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await expect
+      .poll(async () => {
+        const box = await back.boundingBox();
+        return (
+          !!box &&
+          box.y >= 0 &&
+          box.y + box.height <= page.viewportSize()!.height
+        );
+      })
+      .toBe(true);
+  }
+  await back.click();
+  await expect(
+    page.getByRole("heading", { name: "הלו״ז שלי", exact: true }),
+  ).toBeVisible();
+});
+
+test("vendor details persist after revisiting, can be updated and cleared, and stay separate per vendor", async ({
+  page,
+}) => {
+  await mockWedding(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: /חן שקד/ }).click();
+  const details = page.getByRole("textbox", {
+    name: "פירוט נוסף",
+    exact: true,
+  });
+  await expect(details).toBeVisible();
+  await details.fill("להגיע בבקשה עם שיער חפוף");
+  await page.getByRole("button", { name: "שמירת הפירוט" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "הפירוט נשמר" }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(details).toHaveValue("להגיע בבקשה עם שיער חפוף");
+  await details.fill("להגיע בבקשה עם שיער חפוף\nללא מוצרי עיצוב");
+  await page.getByRole("button", { name: "שמירת הפירוט" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "הפירוט נשמר" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "החלפת משתמשת" }).click();
+  await page.getByRole("button", { name: /איילת שילוני/ }).click();
+  await expect(details).toHaveValue("");
+  await page.getByRole("button", { name: "החלפת משתמשת" }).click();
+  await page.getByRole("button", { name: /חן שקד/ }).click();
+  await expect(details).toHaveValue(
+    "להגיע בבקשה עם שיער חפוף\nללא מוצרי עיצוב",
+  );
+  await details.fill("");
+  await page.getByRole("button", { name: "שמירת הפירוט" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "הפירוט נשמר" }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(details).toHaveValue("");
+});
+
+test("vendor details failures preserve the draft and concurrent changes are not overwritten", async ({
+  page,
+}) => {
+  const state = await mockWedding(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: /חן שקד/ }).click();
+  const details = page.getByRole("textbox", {
+    name: "פירוט נוסף",
+    exact: true,
+  });
+  await expect(details).toBeVisible();
+  await details.fill("טקסט שעדיין לא נשמר");
+  state.failDetailsSave = true;
+  await page.getByRole("button", { name: "שמירת הפירוט" }).click();
+  await expect(page.getByRole("alert")).toContainText("הרשאה");
+  await expect(details).toHaveValue("טקסט שעדיין לא נשמר");
+  state.failDetailsSave = false;
+  const vendor = state.vendors.find((v) => v.name === "חן שקד")!;
+  vendor.additional_details = "הנחיה שנשמרה במכשיר אחר";
+  await page.getByRole("button", { name: "שמירת הפירוט" }).click();
+  await expect(page.getByRole("alert")).toContainText("הפירוט השתנה");
+  expect(vendor.additional_details).toBe("הנחיה שנשמרה במכשיר אחר");
+  await expect(details).toHaveValue("טקסט שעדיין לא נשמר");
+});
+
+test("missing vendor details column leaves scheduling available without pretending notes can be saved", async ({
+  page,
+}) => {
+  const state = await mockWedding(page);
+  state.detailsColumnAvailable = false;
+  await page.goto("/");
+  await page.getByRole("button", { name: /חן שקד/ }).click();
+  await expect(
+    page.getByRole("textbox", { name: "פירוט נוסף", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "שמירת הפירוט" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "קביעת שעה עבור עדי", exact: true }),
+  ).toBeEnabled();
+});
+
 test("family access requires the local password and filters schedules by participant", async ({
   page,
 }) => {
@@ -141,16 +257,16 @@ test("saves, edits and clears an appointment without changing its assignment", a
   await expect(
     page.getByRole("button", { name: "שמירת השיבוץ" }),
   ).toBeDisabled();
-  await page.getByLabel("משך הטיפול").fill("45");
+  await page.getByLabel("משך הטיפול").fill("35");
   await expect(
     page.getByLabel("שעת התחלה").locator('option[value="13:15"]'),
   ).toHaveCount(0);
-  await page.getByLabel("שעת התחלה").selectOption("13:30");
+  await page.getByLabel("שעת התחלה").selectOption("13:35");
   await page.screenshot({
     path: "test-results/booking-375.png",
     fullPage: true,
   });
-  await expect(page.locator(".calculated-end")).toContainText("14:15");
+  await expect(page.locator(".calculated-end")).toContainText("14:10");
   await expect(page.getByLabel("סטטוס השיבוץ")).toHaveCount(0);
   await page.getByRole("button", { name: "שמירת השיבוץ" }).click();
   await expect(dialog).not.toBeVisible();
